@@ -323,79 +323,18 @@
 </div>
 <div class="w-full p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-5 bg-slate-50 dark:bg-[#1a2634]/50 rounded-b-xl">
 <div class="w-full">
-<h4 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Signal Interpretation</h4>
-<p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                            Strong Q3 earnings across major tech firms suggest continued momentum. Key support levels have held despite early session volatility. Expect short-term bullish continuation if 15,200 resistance breaks.
-                        </p>
+<h4 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+  <span class="material-symbols-outlined text-sm">psychology</span> Signal Interpretation
+  <span id="signalBadge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold"></span>
+</h4>
+<p id="signalText" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+  Click a news item on the left to get AI analysis.
+</p>
 </div>
 <div class="w-full border-t border-slate-200 dark:border-slate-700 pt-4">
 <h4 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-sm">smart_toy</span> Automated Trade Recommendations</h4>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-<div class="bg-white dark:bg-[#101922] p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-3 hover:border-primary/50 transition-colors">
-<div class="flex justify-between items-center">
-<div class="flex items-center gap-2">
-<span class="font-bold text-slate-900 dark:text-white">NDX</span>
-<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">Buy</span>
-</div>
-<span class="text-xs font-medium text-slate-500 dark:text-slate-400">R/R: 1:2.5</span>
-</div>
-<div class="grid grid-cols-2 gap-2 text-sm bg-slate-50 dark:bg-slate-800/50 p-2 rounded">
-<div class="flex flex-col">
-<span class="text-[10px] text-slate-500 uppercase tracking-wider">Auto TP</span>
-<span class="font-semibold text-green-600 dark:text-green-400">15,400</span>
-</div>
-<div class="flex flex-col">
-<span class="text-[10px] text-slate-500 uppercase tracking-wider">Auto SL</span>
-<span class="font-semibold text-red-600 dark:text-red-400">14,900</span>
-</div>
-</div>
-<button class="w-full bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-semibold py-2 rounded transition-colors flex items-center justify-center gap-1 border border-primary/20 hover:border-transparent mt-1">
-<span class="material-symbols-outlined text-[14px]">bolt</span> Execute Auto-Trade
-                                </button>
-</div>
-<div class="bg-white dark:bg-[#101922] p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-3 hover:border-primary/50 transition-colors">
-<div class="flex justify-between items-center">
-<div class="flex items-center gap-2">
-<span class="font-bold text-slate-900 dark:text-white">AAPL</span>
-<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">Buy</span>
-</div>
-<span class="text-xs font-medium text-slate-500 dark:text-slate-400">R/R: 1:3.0</span>
-</div>
-<div class="grid grid-cols-2 gap-2 text-sm bg-slate-50 dark:bg-slate-800/50 p-2 rounded">
-<div class="flex flex-col">
-<span class="text-[10px] text-slate-500 uppercase tracking-wider">Auto TP</span>
-<span class="font-semibold text-green-600 dark:text-green-400">195.50</span>
-</div>
-<div class="flex flex-col">
-<span class="text-[10px] text-slate-500 uppercase tracking-wider">Auto SL</span>
-<span class="font-semibold text-red-600 dark:text-red-400">182.00</span>
-</div>
-</div>
-<button class="w-full bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-semibold py-2 rounded transition-colors flex items-center justify-center gap-1 border border-primary/20 hover:border-transparent mt-1">
-<span class="material-symbols-outlined text-[14px]">bolt</span> Execute Auto-Trade
-                                </button>
-</div>
-<div class="bg-white dark:bg-[#101922] p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-3 hover:border-primary/50 transition-colors">
-<div class="flex justify-between items-center">
-<div class="flex items-center gap-2">
-<span class="font-bold text-slate-900 dark:text-white">MSFT</span>
-<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">Buy</span>
-</div>
-<span class="text-xs font-medium text-slate-500 dark:text-slate-400">R/R: 1:2.2</span>
-</div>
-<div class="grid grid-cols-2 gap-2 text-sm bg-slate-50 dark:bg-slate-800/50 p-2 rounded">
-<div class="flex flex-col">
-<span class="text-[10px] text-slate-500 uppercase tracking-wider">Auto TP</span>
-<span class="font-semibold text-green-600 dark:text-green-400">355.00</span>
-</div>
-<div class="flex flex-col">
-<span class="text-[10px] text-slate-500 uppercase tracking-wider">Auto SL</span>
-<span class="font-semibold text-red-600 dark:text-red-400">332.50</span>
-</div>
-</div>
-<button class="w-full bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-semibold py-2 rounded transition-colors flex items-center justify-center gap-1 border border-primary/20 hover:border-transparent mt-1">
-<span class="material-symbols-outlined text-[14px]">bolt</span> Execute Auto-Trade
-                                </button>
+<div id="tradeRecs" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+  <div class="col-span-3 text-center text-slate-400 text-xs py-4">Select a news item to generate recommendations</div>
 </div>
 </div>
 </div>
@@ -554,6 +493,79 @@ function timeAgo(dateStr) {
   return Math.floor(diff/86400) + 'd ago';
 }
 
+async function analyzeNews(item) {
+  const signalText = document.getElementById('signalText');
+  const signalBadge = document.getElementById('signalBadge');
+  const tradeRecs = document.getElementById('tradeRecs');
+
+  signalText.innerHTML = '<span class="animate-pulse">⚡ Analyzing with AI...</span>';
+  signalBadge.className = 'hidden';
+  tradeRecs.innerHTML = '<div class="col-span-3 text-center text-slate-400 text-xs py-4 animate-pulse">Generating recommendations...</div>';
+
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: item.title,
+        description: item.description,
+        tokens: item.tokens || []
+      })
+    });
+    const data = await res.json();
+
+    // Signal badge
+    const signalColors = {
+      bullish: 'bg-green-500/20 text-green-400',
+      bearish: 'bg-red-500/20 text-red-400',
+      neutral: 'bg-yellow-500/20 text-yellow-400'
+    };
+    const signal = data.signal || 'neutral';
+    signalBadge.className = `px-2 py-0.5 rounded text-[10px] font-bold ${signalColors[signal] || signalColors.neutral}`;
+    signalBadge.textContent = signal.toUpperCase();
+
+    signalText.textContent = data.interpretation || 'No interpretation available.';
+
+    // Trade recommendations
+    const recs = data.recommendations || [];
+    if (!recs.length) {
+      tradeRecs.innerHTML = '<div class="col-span-3 text-center text-slate-400 text-xs py-4">No specific trade recommendations for this news.</div>';
+    } else {
+      tradeRecs.innerHTML = recs.map(r => {
+        const isLong = r.action === 'Long';
+        const actionColor = isLong ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400';
+        return `
+        <div class="bg-white dark:bg-[#101922] p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-3 hover:border-primary/50 transition-colors">
+          <div class="flex justify-between items-center">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-900 dark:text-white">${r.symbol}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-medium ${actionColor}">${r.action}</span>
+            </div>
+            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">R/R: ${r.rr}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-sm bg-slate-50 dark:bg-slate-800/50 p-2 rounded">
+            <div class="flex flex-col">
+              <span class="text-[10px] text-slate-500 uppercase tracking-wider">TP</span>
+              <span class="font-semibold text-green-600 dark:text-green-400">${r.tp}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[10px] text-slate-500 uppercase tracking-wider">SL</span>
+              <span class="font-semibold text-red-600 dark:text-red-400">${r.sl}</span>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">${r.reasoning}</p>
+          <button class="w-full bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-semibold py-2 rounded transition-colors flex items-center justify-center gap-1 border border-primary/20 hover:border-transparent mt-1">
+            <span class="material-symbols-outlined text-[14px]">bolt</span> Execute Auto-Trade
+          </button>
+        </div>`;
+      }).join('');
+    }
+  } catch(e) {
+    signalText.textContent = 'Analysis failed. Please try again.';
+    tradeRecs.innerHTML = '<div class="col-span-3 text-center text-red-400 text-xs py-4">Failed to generate recommendations.</div>';
+  }
+}
+
 function renderTokens(tokens) {
   if (!tokens || !tokens.length) return '';
   return `
@@ -585,12 +597,14 @@ function renderNews(items) {
     return;
   }
   feed.innerHTML = items.map((item, i) => `
-    <a href="${item.link}" target="_blank" class="text-left p-4 border-b border-slate-200 dark:border-slate-800 ${i===0?'bg-slate-50 dark:bg-slate-800/50 border-l-2 border-l-primary':'bg-white dark:bg-[#15202b] border-l-2 border-l-transparent'} hover:bg-slate-100 dark:hover:bg-[#1a2634] transition-colors flex flex-col gap-2.5 cursor-pointer no-underline">
+    <div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 ${i===0?'bg-slate-50 dark:bg-slate-800/50 border-l-2 border-l-primary':'bg-white dark:bg-[#15202b] border-l-2 border-l-transparent'} hover:bg-slate-100 dark:hover:bg-[#1a2634] transition-colors flex flex-col gap-2.5 cursor-pointer" onclick="analyzeNews(window._newsItems[${i}])">
       <div class="flex justify-between items-center w-full">
         <div class="flex gap-2 items-center">
           <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 uppercase tracking-wide">${item.tag}</span>
         </div>
-        <span class="material-symbols-outlined text-[14px] text-slate-400">open_in_new</span>
+        <a href="${item.link}" target="_blank" onclick="event.stopPropagation()" class="text-slate-400 hover:text-primary">
+          <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+        </a>
       </div>
       <h4 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">${item.title}</h4>
       <p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">${item.description}</p>
@@ -602,8 +616,11 @@ function renderNews(items) {
           <span class="material-symbols-outlined text-[12px]">schedule</span> ${timeAgo(item.pubDate)}
         </span>
       </div>
-    </a>
+    </div>
   `).join('');
+  window._newsItems = items;
+  // 自动分析第一条
+  if (items.length > 0) analyzeNews(items[0]);
 }
 
 async function loadNews() {
