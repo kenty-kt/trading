@@ -40,22 +40,22 @@
     #right-panel { position: fixed; left: 400px; right: 0; top: 60px; bottom: 0; overflow-y: auto; padding: 1.5rem; background: #101922; }
     header { position: fixed; top: 0; left: 0; right: 0; z-index: 50; height: 60px; }
 
-    /* 滚动条 */
+    /* 滚动条 - 同时覆盖 newsFeed */
     #left-panel::-webkit-scrollbar,
-    #right-panel::-webkit-scrollbar { width: 4px; }
+    #right-panel::-webkit-scrollbar,
+    #newsFeed::-webkit-scrollbar { width: 4px; }
 
     #left-panel::-webkit-scrollbar-track,
-    #right-panel::-webkit-scrollbar-track { background: transparent; }
+    #right-panel::-webkit-scrollbar-track,
+    #newsFeed::-webkit-scrollbar-track { background: transparent; }
 
-    #left-panel::-webkit-scrollbar-thumb { background: #2d3f55; border-radius: 4px; }
-    #left-panel::-webkit-scrollbar-thumb:hover { background: #137fec; }
+    #left-panel::-webkit-scrollbar-thumb,
+    #newsFeed::-webkit-scrollbar-thumb { background: #2d3f55; border-radius: 4px; }
+    #left-panel::-webkit-scrollbar-thumb:hover,
+    #newsFeed::-webkit-scrollbar-thumb:hover { background: #137fec; }
 
     #right-panel::-webkit-scrollbar-thumb { background: #1e2d3d; border-radius: 4px; }
     #right-panel::-webkit-scrollbar-thumb:hover { background: #137fec; }
-
-    /* 滚动条只在 hover 时显示 */
-    #left-panel::-webkit-scrollbar-thumb,
-    #right-panel::-webkit-scrollbar-thumb { transition: background 0.2s; }
 </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display flex flex-col overflow-hidden" style="height:100vh">
@@ -262,7 +262,7 @@
 </div>
 </section>
 <section id="right-panel" style="display:flex;flex-direction:column;gap:1.5rem">
-<div class="flex-1 bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[400px]">
+<div class="flex-1 bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
 <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3 bg-slate-50 dark:bg-[#1a2634] rounded-t-xl">
 <div class="flex justify-between items-start">
 <div class="flex flex-col gap-1">
@@ -296,7 +296,7 @@
 <button class="text-slate-500 hover:text-slate-900 dark:hover:text-white"><span class="material-symbols-outlined text-sm">draw</span></button>
 </div>
 </div>
-<div class="flex-1 bg-slate-100 dark:bg-[#101922] rounded border border-slate-200 dark:border-slate-800 relative overflow-hidden group/chart min-h-[250px]">
+<div class="bg-slate-100 dark:bg-[#101922] rounded border border-slate-200 dark:border-slate-800 relative overflow-hidden group/chart" style="height:220px">
 <svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 1000 300">
 <path class="opacity-30" d="M 0 50 L 1000 50 M 0 100 L 1000 100 M 0 150 L 1000 150 M 0 200 L 1000 200 M 0 250 L 1000 250" fill="none" stroke="#334155" stroke-dasharray="4 4" stroke-width="0.5"></path>
 <path class="opacity-10" d="M 100 0 L 100 300 M 300 0 L 300 300 M 500 0 L 500 300 M 700 0 L 700 300 M 900 0 L 900 300" fill="none" stroke="#334155" stroke-dasharray="4 4" stroke-width="0.5"></path>
