@@ -1,17 +1,33 @@
+const https = require('https');
+
+function httpsGet(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); }
+        catch(e) { reject(e); }
+      });
+    }).on('error', reject);
+  });
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   const { symbol = 'BTCUSDT', from, to } = req.query;
-  // from/to 是 unix 秒，拉对应时间段的4H K线
   const startMs = parseInt(from) * 1000;
   const endMs = parseInt(to) * 1000;
 
   try {
     const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=4h&startTime=${startMs}&endTime=${endMs}&limit=24`;
-    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-    const data = await r.json();
+    const data = await httpsGet(url);
 
-    // [openTime, open, high, low, close, volume, ...]
+    if (!Array.isArray(data)) {
+      return res.status(500).json({ error: 'Invalid response from Binance', raw: data });
+    }
+
     const candles = data.map(k => ({
       t: k[0],
       o: parseFloat(k[1]),
