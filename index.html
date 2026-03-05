@@ -58,6 +58,8 @@
     #right-panel::-webkit-scrollbar-thumb:hover { background: #137fec; }
 </style>
 <script src="https://s3.tradingview.com/tv.js"></script>
+<!-- Solana Web3 -->
+<script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display flex flex-col overflow-hidden" style="height:100vh">
 <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 px-6 py-3 bg-white dark:bg-[#15202b] sticky top-0 z-50">
@@ -744,7 +746,7 @@ async function analyzeNews(item) {
             </div>
           </div>
           <p class="text-[11px] text-slate-500 dark:text-slate-400">${r.reasoning}</p>
-          <button class="w-full bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-semibold py-2 rounded transition-colors flex items-center justify-center gap-1 border border-primary/20 hover:border-transparent mt-1">
+          <button onclick='openTradeModal(${JSON.stringify({symbol:r.symbol,action:r.action,tp:r.tp,sl:r.sl,spotPrice:tokenData?.price})})' class="w-full bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-semibold py-2 rounded transition-colors flex items-center justify-center gap-1 border border-primary/20 hover:border-transparent mt-1">
             <span class="material-symbols-outlined text-[14px]">bolt</span> Execute Auto-Trade
           </button>
         </div>`;
@@ -867,5 +869,252 @@ async function loadNews() {
 
 loadNews();
 // 不自动刷新，手动点击新闻加载
+</script>
+<!-- 交易弹窗 -->
+<div id="tradeModal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);" onclick="closeTradeModal(event)">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:420px;max-width:90vw;background:#15202b;border:1px solid #1e293b;border-radius:1rem;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;">
+    <!-- 标题 -->
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;">
+        <span class="material-symbols-outlined" style="color:#137fec">bolt</span>
+        Execute Trade · Jupiter DEX
+      </h3>
+      <button onclick="document.getElementById('tradeModal').style.display='none'" style="color:#64748b;background:none;border:none;cursor:pointer;font-size:20px;">✕</button>
+    </div>
+
+    <!-- 钱包状态 -->
+    <div id="walletStatus" style="padding:10px;background:#101922;border-radius:8px;font-size:12px;color:#94a3b8;display:flex;justify-content:space-between;align-items:center;">
+      <span id="walletAddr">Not connected</span>
+      <button id="connectWalletBtn" onclick="connectWallet()" style="padding:6px 12px;background:#137fec;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;">Connect Wallet</button>
+    </div>
+
+    <!-- 交易方向 -->
+    <div style="display:flex;gap:8px;">
+      <button id="btnLong" onclick="setTradeDir('long')" style="flex:1;padding:8px;background:#10b98120;color:#10b981;border:1px solid #10b98140;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;">▲ Long</button>
+      <button id="btnShort" onclick="setTradeDir('short')" style="flex:1;padding:8px;background:#1e293b;color:#64748b;border:1px solid #334155;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;">▼ Short</button>
+    </div>
+
+    <!-- 交易对 & 金额 -->
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;color:#64748b;">Token</span>
+        <span id="tradeTokenLabel" style="font-size:14px;font-weight:700;color:#fff;">--</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;color:#64748b;">Current Price</span>
+        <span id="tradePrice" style="font-size:14px;color:#fff;">--</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <div style="display:flex;justify-content:space-between;">
+          <span style="font-size:12px;color:#64748b;">Amount (USDC)</span>
+          <div style="display:flex;gap:4px;">
+            <button onclick="setAmount(10)" style="padding:2px 6px;font-size:10px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:4px;cursor:pointer;">$10</button>
+            <button onclick="setAmount(50)" style="padding:2px 6px;font-size:10px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:4px;cursor:pointer;">$50</button>
+            <button onclick="setAmount(100)" style="padding:2px 6px;font-size:10px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:4px;cursor:pointer;">$100</button>
+          </div>
+        </div>
+        <input id="tradeAmount" type="number" value="50" min="1" style="width:100%;padding:8px 12px;background:#101922;border:1px solid #334155;border-radius:6px;color:#fff;font-size:14px;outline:none;" oninput="updateQuote()"/>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;color:#64748b;">Slippage</span>
+        <div style="display:flex;gap:4px;">
+          <button onclick="setSlippage(0.1)" class="slip-btn" style="padding:3px 8px;font-size:11px;background:#137fec;color:#fff;border:none;border-radius:4px;cursor:pointer;">0.1%</button>
+          <button onclick="setSlippage(0.5)" class="slip-btn" style="padding:3px 8px;font-size:11px;background:#1e293b;color:#94a3b8;border:none;border-radius:4px;cursor:pointer;">0.5%</button>
+          <button onclick="setSlippage(1)" class="slip-btn" style="padding:3px 8px;font-size:11px;background:#1e293b;color:#94a3b8;border:none;border-radius:4px;cursor:pointer;">1%</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 报价结果 -->
+    <div id="quoteResult" style="padding:10px;background:#101922;border-radius:8px;font-size:12px;color:#64748b;min-height:40px;">
+      Enter amount to get quote
+    </div>
+
+    <!-- TP / SL -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <span style="font-size:11px;color:#64748b;">Take Profit</span>
+        <input id="tpInput" type="text" placeholder="e.g. 75000" style="padding:6px 10px;background:#101922;border:1px solid #334155;border-radius:6px;color:#10b981;font-size:13px;outline:none;"/>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <span style="font-size:11px;color:#64748b;">Stop Loss</span>
+        <input id="slInput" type="text" placeholder="e.g. 68000" style="padding:6px 10px;background:#101922;border:1px solid #334155;border-radius:6px;color:#ef4444;font-size:13px;outline:none;"/>
+      </div>
+    </div>
+
+    <!-- 确认按钮 -->
+    <button id="executeBtn" onclick="executeSwap()" style="width:100%;padding:12px;background:#137fec;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;">
+      <span class="material-symbols-outlined" style="font-size:16px;">bolt</span>
+      Confirm Trade on Jupiter
+    </button>
+    <p style="font-size:10px;color:#475569;text-align:center;">Powered by Jupiter Aggregator · Solana</p>
+  </div>
+</div>
+
+<script>
+const TOKEN_MINTS = {
+  'SOL':  'So11111111111111111111111111111111111111112',
+  'BTC':  '9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E',
+  'ETH':  '7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs',
+  'USDC': 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+  'USDT': 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
+  'XRP':  'Ga7NszFvLMeHWJRziddFgqMKVuLuoqo7PFmLFtCFNKr9',
+  'DOGE': 'A9mUU4qviSctJVPJdBJWkb28deg915LYJKrzQ19ji3FM',
+  'AVAX': 'KMNo3nJsBXFcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS',
+  'LINK': 'CWE8jPTUYhdCTZYWPTe1o5DFqfdjzWKc9WKz6rSjnUdR',
+};
+
+let walletPublicKey = null;
+let currentSlippage = 10; // bps
+let tradeDir = 'long';
+let currentTradeRec = null;
+
+async function connectWallet() {
+  if (window.solana && window.solana.isPhantom) {
+    try {
+      const resp = await window.solana.connect();
+      walletPublicKey = resp.publicKey.toString();
+      const short = walletPublicKey.slice(0,4) + '...' + walletPublicKey.slice(-4);
+      document.getElementById('walletAddr').textContent = short;
+      document.getElementById('connectWalletBtn').textContent = 'Connected ✓';
+      document.getElementById('connectWalletBtn').style.background = '#10b981';
+    } catch(e) {
+      alert('Connection rejected');
+    }
+  } else {
+    window.open('https://phantom.app/', '_blank');
+  }
+}
+
+function setTradeDir(dir) {
+  tradeDir = dir;
+  document.getElementById('btnLong').style.background = dir === 'long' ? '#10b98120' : '#1e293b';
+  document.getElementById('btnLong').style.color = dir === 'long' ? '#10b981' : '#64748b';
+  document.getElementById('btnShort').style.background = dir === 'short' ? '#ef444420' : '#1e293b';
+  document.getElementById('btnShort').style.color = dir === 'short' ? '#ef4444' : '#64748b';
+  updateQuote();
+}
+
+function setAmount(val) {
+  document.getElementById('tradeAmount').value = val;
+  updateQuote();
+}
+
+function setSlippage(pct) {
+  currentSlippage = pct * 100;
+  document.querySelectorAll('.slip-btn').forEach(b => {
+    b.style.background = b.textContent === pct + '%' ? '#137fec' : '#1e293b';
+    b.style.color = b.textContent === pct + '%' ? '#fff' : '#94a3b8';
+  });
+}
+
+let quoteTimeout = null;
+function updateQuote() {
+  clearTimeout(quoteTimeout);
+  quoteTimeout = setTimeout(fetchQuote, 500);
+}
+
+async function fetchQuote() {
+  if (!currentTradeRec) return;
+  const amount = parseFloat(document.getElementById('tradeAmount').value) || 50;
+  const amountInLamports = Math.floor(amount * 1e6); // USDC 6 decimals
+  const tokenSymbol = currentTradeRec.symbol;
+  const outputMint = TOKEN_MINTS[tokenSymbol];
+  const inputMint = TOKEN_MINTS['USDC'];
+  if (!outputMint) {
+    document.getElementById('quoteResult').innerHTML = '<span style="color:#ef4444">Token not supported on Solana yet</span>';
+    return;
+  }
+  document.getElementById('quoteResult').textContent = 'Getting quote...';
+  try {
+    const r = await fetch(`/api/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountInLamports}&slippage=${currentSlippage}`);
+    const d = await r.json();
+    if (d.quote && d.quote.outAmount) {
+      const out = (parseInt(d.quote.outAmount) / 1e9).toFixed(6);
+      const impact = d.quote.priceImpactPct ? (parseFloat(d.quote.priceImpactPct) * 100).toFixed(3) : '—';
+      document.getElementById('quoteResult').innerHTML = `
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span>You pay</span><span style="color:#fff;font-weight:600;">$${amount} USDC</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span>You receive</span><span style="color:#10b981;font-weight:600;">≈ ${out} ${tokenSymbol}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span>Price impact</span><span style="color:${parseFloat(impact) > 1 ? '#ef4444' : '#94a3b8'}">${impact}%</span>
+        </div>`;
+      window._lastQuote = d.quote;
+    } else {
+      document.getElementById('quoteResult').innerHTML = '<span style="color:#ef4444">No route found</span>';
+    }
+  } catch(e) {
+    document.getElementById('quoteResult').innerHTML = `<span style="color:#ef4444">${e.message}</span>`;
+  }
+}
+
+async function executeSwap() {
+  if (!walletPublicKey) {
+    await connectWallet();
+    if (!walletPublicKey) return;
+  }
+  if (!window._lastQuote) {
+    alert('Please wait for quote to load');
+    return;
+  }
+  const btn = document.getElementById('executeBtn');
+  btn.textContent = 'Getting swap transaction...';
+  btn.disabled = true;
+  try {
+    // 获取 swap 交易数据
+    const swapRes = await fetch('https://quote-api.jup.ag/v6/swap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quoteResponse: window._lastQuote,
+        userPublicKey: walletPublicKey,
+        wrapAndUnwrapSol: true,
+      })
+    });
+    const swapData = await swapRes.json();
+    if (!swapData.swapTransaction) throw new Error('No swap transaction returned');
+
+    // 反序列化并发送
+    const swapTransactionBuf = Uint8Array.from(atob(swapData.swapTransaction), c => c.charCodeAt(0));
+    const transaction = solanaWeb3.VersionedTransaction.deserialize(swapTransactionBuf);
+    const signedTx = await window.solana.signTransaction(transaction);
+    const conn = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+    const txid = await conn.sendRawTransaction(signedTx.serialize());
+
+    btn.style.background = '#10b981';
+    btn.textContent = '✓ Transaction Sent!';
+    document.getElementById('quoteResult').innerHTML = `
+      <div style="color:#10b981;font-weight:600;">✓ Swap submitted!</div>
+      <div style="font-size:10px;margin-top:4px;">
+        <a href="https://solscan.io/tx/${txid}" target="_blank" style="color:#137fec;">${txid.slice(0,20)}...</a>
+      </div>`;
+  } catch(e) {
+    btn.style.background = '#ef4444';
+    btn.textContent = 'Failed: ' + e.message.slice(0, 40);
+    setTimeout(() => {
+      btn.style.background = '#137fec';
+      btn.textContent = 'Confirm Trade on Jupiter';
+      btn.disabled = false;
+    }, 3000);
+  }
+}
+
+function openTradeModal(rec) {
+  currentTradeRec = rec;
+  document.getElementById('tradeModal').style.display = 'block';
+  document.getElementById('tradeTokenLabel').textContent = rec.symbol;
+  document.getElementById('tradePrice').textContent = rec.spotPrice ? '$' + rec.spotPrice : '--';
+  document.getElementById('tpInput').value = rec.tp || '';
+  document.getElementById('slInput').value = rec.sl || '';
+  setTradeDir(rec.action === 'Long' ? 'long' : 'short');
+  setTimeout(fetchQuote, 300);
+}
+
+function closeTradeModal(e) {
+  if (e.target.id === 'tradeModal') document.getElementById('tradeModal').style.display = 'none';
+}
 </script>
 </body></html>
