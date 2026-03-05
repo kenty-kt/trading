@@ -74,8 +74,8 @@
 </div>
 </div>
 </header>
-<main class="flex-1 overflow-hidden flex flex-col md:flex-row p-4 md:p-6 gap-6">
-<section class="w-full md:w-[350px] lg:w-[400px] flex flex-col bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-shrink-0 h-full">
+<main style="flex:1;overflow:hidden;display:flex;flex-direction:row;padding:1rem 1.5rem;gap:1.5rem;height:calc(100vh - 60px)">
+<section style="width:380px;flex-shrink:0;display:flex;flex-direction:column;background:#15202b;border-radius:0.75rem;border:1px solid #1e293b;overflow:hidden;height:100%">
 <div class="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a2634]">
 <button class="flex-1 py-3 text-sm font-bold text-primary border-b-2 border-primary transition-colors flex items-center justify-center gap-2">
 <span class="material-symbols-outlined text-sm">feed</span> Live News
@@ -84,7 +84,7 @@
 <span class="material-symbols-outlined text-sm">dashboard</span> Market Sectors
     </button>
 </div>
-<div class="flex-1 flex flex-col overflow-y-auto" id="newsFeed">
+<div style="flex:1;overflow-y:auto" id="newsFeed">
 <div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-l-2 border-l-primary flex flex-col gap-2.5 cursor-pointer">
 <div class="flex justify-between items-center w-full">
 <div class="flex gap-2 items-center">
@@ -239,7 +239,7 @@
 </div>
 </div>
 </section>
-<section class="flex-1 flex flex-col gap-6 overflow-y-auto h-full">
+<section style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:1.5rem;height:100%">
 <div class="flex-1 bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[400px]">
 <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3 bg-slate-50 dark:bg-[#1a2634] rounded-t-xl">
 <div class="flex justify-between items-start">
