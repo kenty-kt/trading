@@ -1,1 +1,548 @@
-<!DOCTYPE html> <html class="dark" lang="en"><head> <meta charset="utf-8"/> <meta content="width=device-width, initial-scale=1.0" name="viewport"/> <title>NewsTrade Pro - Dashboard</title> <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script> <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/> <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/> <script id="tailwind-config"> tailwind.config = { darkMode: "class", theme: { extend: { colors: { "primary": "#137fec", "background-light": "#f6f7f8", "background-dark": "#101922", }, fontFamily: { "display": ["Work Sans", "sans-serif"] }, borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"}, }, }, } </script> <style type="text/tailwindcss"> @keyframes pulse-ring { 0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } } .animate-pulse-ring { animation: pulse-ring 2s infinite cubic-bezier(0.66, 0, 0, 1); } </style> </head> <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen flex flex-col"> <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 px-6 py-3 bg-white dark:bg-[#15202b] sticky top-0 z-50"> <div class="flex items-center gap-8"> <div class="flex items-center gap-4 text-primary"> <div class="size-6 flex items-center justify-center"> <span class="material-symbols-outlined text-2xl">timeline</span> </div> <h2 class="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-[-0.015em]">NewsTrade Pro</h2> </div> <div class="flex items-center gap-6 hidden md:flex"> <a class="text-primary text-sm font-medium leading-normal" href="#">Dashboard</a> <a class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium leading-normal transition-colors" href="#">News Feed</a> <a class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium leading-normal transition-colors" href="#">Analysis</a> <a class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium leading-normal transition-colors" href="#">Portfolio</a> </div> </div> <div class="flex flex-1 justify-end gap-4 md:gap-8 items-center"> <label class="flex flex-col min-w-40 !h-10 max-w-64 hidden sm:flex"> <div class="flex w-full flex-1 items-stretch rounded-lg h-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus-within:ring-1 focus-within:ring-primary"> <div class="text-slate-400 flex items-center justify-center pl-3"> <span class="material-symbols-outlined text-xl">search</span> </div> <input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden text-slate-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-transparent h-full placeholder:text-slate-400 px-3 text-sm font-normal leading-normal" placeholder="Search markets, news..." value=""/> </div> </label> <div class="flex gap-2"> <button class="flex items-center justify-center rounded-lg h-10 w-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"> <span class="material-symbols-outlined text-xl">notifications</span> </button> <button class="flex items-center justify-center rounded-lg h-10 w-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors hidden sm:flex"> <span class="material-symbols-outlined text-xl">settings</span> </button> <button class="flex items-center justify-center rounded-lg h-10 w-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"> <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8" data-alt="User profile avatar image" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuADvylIpMtSReDFsSysJDt1qPVj5gq9rBg0bHdSVVr8OqJ2q4-9GT6ZuFAWiwISiPEviHlXq58fLqvCbs-q8L4Od2cqIaDkq7XsetKKeDOoPPIPPJjpFmouKHHBb6C409OSXE4TGTGwgbvLf9UqmUdVhigrLtZtygd0sq4o9EWlWK-dfYqKS5FQbpv0cB35GyPyJf4IESn02IILkcZq8b42xqcNuiGD3ptBA-JB1E_kLMT-NqgWucypCyLS1ufbTsifd7SFntOl19J8");'></div> </button> </div> </div> </header> <main class="flex-1 overflow-hidden flex flex-col md:flex-row p-4 md:p-6 gap-6"> <section class="w-full md:w-[350px] lg:w-[400px] flex flex-col bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-shrink-0"> <div class="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a2634]"> <button class="flex-1 py-3 text-sm font-bold text-primary border-b-2 border-primary transition-colors flex items-center justify-center gap-2"> <span class="material-symbols-outlined text-sm">feed</span> Live News </button> <button class="flex-1 py-3 text-sm font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border-b-2 border-transparent hover:border-slate-300 dark:hover:border-slate-600 transition-colors flex items-center justify-center gap-2"> <span class="material-symbols-outlined text-sm">dashboard</span> Market Sectors </button> </div> <div class="flex-1 overflow-y-auto flex flex-col"> <div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-l-2 border-l-primary flex flex-col gap-2.5 cursor-pointer"> <div class="flex justify-between items-center w-full"> <div class="flex gap-2 items-center"> <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 uppercase tracking-wide">Macro</span> <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">High Impact</span> </div> <a class="text-slate-400 hover:text-primary transition-colors" href="#" title="View Source"> <span class="material-symbols-outlined text-[14px]">open_in_new</span> </a> </div> <h4 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">U.S. Inflation Data Released: Core CPI Rises 0.3%</h4> <p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">The latest CPI reading came in slightly above market expectations, prompting a quick repricing in bond markets...</p> <div class="mt-1 bg-slate-100 dark:bg-[#101922] rounded p-2 flex flex-col gap-2 border border-slate-200 dark:border-slate-800"> <div class="flex items-center justify-between"> <div class="flex items-center gap-2"> <span class="material-symbols-outlined text-[14px] text-slate-400">candlestick_chart</span> <span class="text-xs font-bold text-slate-900 dark:text-white">USD/JPY</span> <span class="text-xs text-slate-500 font-medium">151.24</span> </div> </div> <div class="flex items-center gap-2"> <div class="flex gap-1"> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">10%</button> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">25%</button> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">50%</button> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">100%</button> </div> <div class="flex gap-1.5 flex-1"> <button class="flex-1 py-1 text-[10px] font-bold rounded bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 transition-colors border border-green-500/20">Long</button> </div> </div> </div> <div class="flex items-center gap-2 mt-1"> <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Bloomberg</span> <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span> <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">schedule</span> 10:30 AM</span> </div> </div> <div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#15202b] hover:bg-slate-50 dark:hover:bg-[#1a2634] transition-colors border-l-2 border-l-transparent flex flex-col gap-2.5 cursor-pointer"> <div class="flex justify-between items-center w-full"> <div class="flex gap-2 items-center"> <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 uppercase tracking-wide">Central Banks</span> <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400">Medium Impact</span> </div> <a class="text-slate-400 hover:text-primary transition-colors" href="#" title="View Source"> <span class="material-symbols-outlined text-[14px]">open_in_new</span> </a> </div> <h4 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">European Central Bank Maintains Current Rate</h4> <p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">The ECB opted to keep its main refinancing rate steady at 4.5%, signaling a prolonged pause in policy...</p> <div class="mt-1 bg-slate-100 dark:bg-[#101922] rounded p-2 flex flex-col gap-2 border border-slate-200 dark:border-slate-800"> <div class="flex items-center justify-between"> <div class="flex items-center gap-2"> <span class="material-symbols-outlined text-[14px] text-slate-400">candlestick_chart</span> <span class="text-xs font-bold text-slate-900 dark:text-white">EUR/USD</span> <span class="text-xs text-slate-500 font-medium">1.0850</span> </div> </div> <div class="flex items-center gap-2"> <div class="flex gap-1"> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">10%</button> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">25%</button> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">50%</button> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">100%</button> </div> <div class="flex gap-1.5 flex-1"><button class="flex-1 py-1 text-[10px] font-bold rounded bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-colors border border-red-500/20">Short</button> </div> </div> </div> <div class="flex items-center gap-2 mt-1"> <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Reuters</span> <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span> <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">schedule</span> 09:15 AM</span> </div> </div> <div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#15202b] hover:bg-slate-50 dark:hover:bg-[#1a2634] transition-colors border-l-2 border-l-transparent flex flex-col gap-2.5 cursor-pointer"> <div class="flex justify-between items-center w-full"> <div class="flex gap-2 items-center"> <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 uppercase tracking-wide">Equities</span> <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">Low Impact</span> </div> <a class="text-slate-400 hover:text-primary transition-colors" href="#" title="View Source"> <span class="material-symbols-outlined text-[14px]">open_in_new</span> </a> </div> <h4 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">Tech Sector Earnings Preview: Megacaps Report Next Week</h4> <p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">Analysts expect strong cloud growth numbers from MSFT and AMZN, while AAPL hardware sales remain in focus...</p> <div class="mt-1 bg-slate-100 dark:bg-[#101922] rounded p-2 flex flex-col gap-2 border border-slate-200 dark:border-slate-800"> <div class="flex items-center justify-between"> <div class="flex items-center gap-2"> <span class="material-symbols-outlined text-[14px] text-slate-400">candlestick_chart</span> <span class="text-xs font-bold text-slate-900 dark:text-white">QQQ</span> <span class="text-xs text-slate-500 font-medium">$435.20</span> </div> </div> <div class="flex items-center gap-2"> <div class="flex gap-1"> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">10%</button> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">25%</button> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">50%</button> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">100%</button> </div> <div class="flex gap-1.5 flex-1"> <button class="flex-1 py-1 text-[10px] font-bold rounded bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 transition-colors border border-green-500/20">Long</button> </div> </div> </div> <div class="flex items-center gap-2 mt-1"> <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">WSJ</span> <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span> <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">schedule</span> Yesterday</span> </div> </div> <div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#15202b] hover:bg-slate-50 dark:hover:bg-[#1a2634] transition-colors border-l-2 border-l-transparent flex flex-col gap-2.5 cursor-pointer"> <div class="flex justify-between items-center w-full"> <div class="flex gap-2 items-center"> <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 uppercase tracking-wide">Commodities</span> <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">High Impact</span> </div> <a class="text-slate-400 hover:text-primary transition-colors" href="#" title="View Source"> <span class="material-symbols-outlined text-[14px]">open_in_new</span> </a> </div> <h4 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">Crude Oil Surges Past $85 Amid Supply Concerns</h4> <p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">Global benchmark Brent crude jumped nearly 3% following reports of potential supply disruptions in the Middle East...</p> <div class="mt-1 bg-slate-100 dark:bg-[#101922] rounded p-2 flex flex-col gap-2 border border-slate-200 dark:border-slate-800"> <div class="flex items-center justify-between"> <div class="flex items-center gap-2"> <span class="material-symbols-outlined text-[14px] text-slate-400">candlestick_chart</span> <span class="text-xs font-bold text-slate-900 dark:text-white">USOIL</span> <span class="text-xs text-slate-500 font-medium">$85.60</span> </div> </div> <div class="flex items-center gap-2"> <div class="flex gap-1"> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">10%</button> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">25%</button> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">50%</button> <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">100%</button> </div> <div class="flex gap-1.5 flex-1"> <button class="flex-1 py-1 text-[10px] font-bold rounded bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 transition-colors border border-green-500/20">Long</button> </div> </div> </div> <div class="flex items-center gap-2 mt-1"> <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Financial Times</span> <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span> <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">schedule</span> Yesterday</span> </div> </div> </div> </section> <section class="flex-1 flex flex-col gap-6 overflow-hidden overflow-y-auto"> <div class="flex-1 bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[400px]"> <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3 bg-slate-50 dark:bg-[#1a2634] rounded-t-xl"> <div class="flex justify-between items-start"> <div class="flex flex-col gap-1"> <div class="flex items-center gap-2 mb-1"> <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">High Impact</span> <span class="text-[10px] font-medium text-slate-500 dark:text-slate-400">10:30 AM, Today</span> </div> <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">U.S. Inflation Data Released: Core CPI Rises 0.3% </h3> </div> <div class="flex gap-2 mt-1"> <button class="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-[#15202b] border border-slate-200 dark:border-slate-700 transition-colors rounded shadow-sm"><span class="material-symbols-outlined text-sm">bookmark</span></button> <button class="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-[#15202b] border border-slate-200 dark:border-slate-700 transition-colors rounded shadow-sm"><span class="material-symbols-outlined text-sm">share</span></button> </div> </div> <div class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed border-l-2 border-primary pl-3 mt-2"> The Bureau of Labor Statistics reported today that the Consumer Price Index (CPI) increased 0.3% sequentially, slightly above the consensus estimate of 0.2%. Core CPI, which excludes volatile food and energy prices, also rose 0.3%. Year-over-year inflation stands at 3.2%. The immediate market reaction saw a spike in Treasury yields as investors pared back expectations for near-term rate cuts by the Federal Reserve. Equities, particularly growth and tech sectors, faced downward pressure in early trading following the release. </div> </div> <div class="flex-1 flex flex-col"> <div class="w-full flex-1 p-4 flex flex-col"> <div class="flex justify-between items-center mb-2"> <div class="flex gap-2"> <button class="text-xs px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">1H</button> <button class="text-xs px-2 py-1 rounded bg-primary text-white shadow-sm">4H</button> <button class="text-xs px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">1D</button> </div> <div class="flex gap-2"> <button class="text-slate-500 hover:text-slate-900 dark:hover:text-white"><span class="material-symbols-outlined text-sm">candlestick_chart</span></button> <button class="text-slate-500 hover:text-slate-900 dark:hover:text-white"><span class="material-symbols-outlined text-sm">draw</span></button> </div> </div> <div class="flex-1 bg-slate-100 dark:bg-[#101922] rounded border border-slate-200 dark:border-slate-800 relative overflow-hidden group/chart min-h-[250px]"> <svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 1000 300"> <path class="opacity-30" d="M 0 50 L 1000 50 M 0 100 L 1000 100 M 0 150 L 1000 150 M 0 200 L 1000 200 M 0 250 L 1000 250" fill="none" stroke="#334155" stroke-dasharray="4 4" stroke-width="0.5"></path> <path class="opacity-10" d="M 100 0 L 100 300 M 300
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NewsTrade Pro - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Work Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+    @keyframes pulse-ring {
+        0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    .animate-pulse-ring {
+        animation: pulse-ring 2s infinite cubic-bezier(0.66, 0, 0, 1);
+    }
+</style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen flex flex-col">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 px-6 py-3 bg-white dark:bg-[#15202b] sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-4 text-primary">
+<div class="size-6 flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl">timeline</span>
+</div>
+<h2 class="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-[-0.015em]">NewsTrade Pro</h2>
+</div>
+<div class="flex items-center gap-6 hidden md:flex">
+<a class="text-primary text-sm font-medium leading-normal" href="#">Dashboard</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium leading-normal transition-colors" href="#">News Feed</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium leading-normal transition-colors" href="#">Analysis</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium leading-normal transition-colors" href="#">Portfolio</a>
+</div>
+</div>
+<div class="flex flex-1 justify-end gap-4 md:gap-8 items-center">
+<label class="flex flex-col min-w-40 !h-10 max-w-64 hidden sm:flex">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus-within:ring-1 focus-within:ring-primary">
+<div class="text-slate-400 flex items-center justify-center pl-3">
+<span class="material-symbols-outlined text-xl">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden text-slate-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-transparent h-full placeholder:text-slate-400 px-3 text-sm font-normal leading-normal" placeholder="Search markets, news..." value=""/>
+</div>
+</label>
+<div class="flex gap-2">
+<button class="flex items-center justify-center rounded-lg h-10 w-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+<span class="material-symbols-outlined text-xl">notifications</span>
+</button>
+<button class="flex items-center justify-center rounded-lg h-10 w-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors hidden sm:flex">
+<span class="material-symbols-outlined text-xl">settings</span>
+</button>
+<button class="flex items-center justify-center rounded-lg h-10 w-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8" data-alt="User profile avatar image" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuADvylIpMtSReDFsSysJDt1qPVj5gq9rBg0bHdSVVr8OqJ2q4-9GT6ZuFAWiwISiPEviHlXq58fLqvCbs-q8L4Od2cqIaDkq7XsetKKeDOoPPIPPJjpFmouKHHBb6C409OSXE4TGTGwgbvLf9UqmUdVhigrLtZtygd0sq4o9EWlWK-dfYqKS5FQbpv0cB35GyPyJf4IESn02IILkcZq8b42xqcNuiGD3ptBA-JB1E_kLMT-NqgWucypCyLS1ufbTsifd7SFntOl19J8");'></div>
+</button>
+</div>
+</div>
+</header>
+<main class="flex-1 overflow-hidden flex flex-col md:flex-row p-4 md:p-6 gap-6">
+<section class="w-full md:w-[350px] lg:w-[400px] flex flex-col bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-shrink-0">
+<div class="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a2634]">
+<button class="flex-1 py-3 text-sm font-bold text-primary border-b-2 border-primary transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">feed</span> Live News
+    </button>
+<button class="flex-1 py-3 text-sm font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border-b-2 border-transparent hover:border-slate-300 dark:hover:border-slate-600 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">dashboard</span> Market Sectors
+    </button>
+</div>
+<div class="flex-1 overflow-y-auto flex flex-col">
+<div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-l-2 border-l-primary flex flex-col gap-2.5 cursor-pointer">
+<div class="flex justify-between items-center w-full">
+<div class="flex gap-2 items-center">
+<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 uppercase tracking-wide">Macro</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">High Impact</span>
+</div>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#" title="View Source">
+<span class="material-symbols-outlined text-[14px]">open_in_new</span>
+</a>
+</div>
+<h4 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">U.S. Inflation Data Released: Core CPI Rises 0.3%</h4>
+<p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">The latest CPI reading came in slightly above market expectations, prompting a quick repricing in bond markets...</p>
+<div class="mt-1 bg-slate-100 dark:bg-[#101922] rounded p-2 flex flex-col gap-2 border border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px] text-slate-400">candlestick_chart</span>
+<span class="text-xs font-bold text-slate-900 dark:text-white">USD/JPY</span>
+<span class="text-xs text-slate-500 font-medium">151.24</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex gap-1">
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">10%</button>
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">25%</button>
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">50%</button>
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">100%</button>
+</div>
+<div class="flex gap-1.5 flex-1">
+<button class="flex-1 py-1 text-[10px] font-bold rounded bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 transition-colors border border-green-500/20">Long</button>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Bloomberg</span>
+<span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+<span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">schedule</span> 10:30 AM</span>
+</div>
+</div>
+<div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#15202b] hover:bg-slate-50 dark:hover:bg-[#1a2634] transition-colors border-l-2 border-l-transparent flex flex-col gap-2.5 cursor-pointer">
+<div class="flex justify-between items-center w-full">
+<div class="flex gap-2 items-center">
+<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 uppercase tracking-wide">Central Banks</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400">Medium Impact</span>
+</div>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#" title="View Source">
+<span class="material-symbols-outlined text-[14px]">open_in_new</span>
+</a>
+</div>
+<h4 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">European Central Bank Maintains Current Rate</h4>
+<p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">The ECB opted to keep its main refinancing rate steady at 4.5%, signaling a prolonged pause in policy...</p>
+<div class="mt-1 bg-slate-100 dark:bg-[#101922] rounded p-2 flex flex-col gap-2 border border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px] text-slate-400">candlestick_chart</span>
+<span class="text-xs font-bold text-slate-900 dark:text-white">EUR/USD</span>
+<span class="text-xs text-slate-500 font-medium">1.0850</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex gap-1">
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">10%</button>
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">25%</button>
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">50%</button>
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">100%</button>
+</div>
+<div class="flex gap-1.5 flex-1">
+<button class="flex-1 py-1 text-[10px] font-bold rounded bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-colors border border-red-500/20">Short</button>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Reuters</span>
+<span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+<span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">schedule</span> 09:15 AM</span>
+</div>
+</div>
+<div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#15202b] hover:bg-slate-50 dark:hover:bg-[#1a2634] transition-colors border-l-2 border-l-transparent flex flex-col gap-2.5 cursor-pointer">
+<div class="flex justify-between items-center w-full">
+<div class="flex gap-2 items-center">
+<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 uppercase tracking-wide">Equities</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">Low Impact</span>
+</div>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#" title="View Source">
+<span class="material-symbols-outlined text-[14px]">open_in_new</span>
+</a>
+</div>
+<h4 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">Tech Sector Earnings Preview: Megacaps Report Next Week</h4>
+<p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">Analysts expect strong cloud growth numbers from MSFT and AMZN, while AAPL hardware sales remain in focus...</p>
+<div class="mt-1 bg-slate-100 dark:bg-[#101922] rounded p-2 flex flex-col gap-2 border border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px] text-slate-400">candlestick_chart</span>
+<span class="text-xs font-bold text-slate-900 dark:text-white">QQQ</span>
+<span class="text-xs text-slate-500 font-medium">$435.20</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex gap-1">
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">10%</button>
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">25%</button>
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">50%</button>
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">100%</button>
+</div>
+<div class="flex gap-1.5 flex-1">
+<button class="flex-1 py-1 text-[10px] font-bold rounded bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 transition-colors border border-green-500/20">Long</button>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">WSJ</span>
+<span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+<span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">schedule</span> Yesterday</span>
+</div>
+</div>
+<div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#15202b] hover:bg-slate-50 dark:hover:bg-[#1a2634] transition-colors border-l-2 border-l-transparent flex flex-col gap-2.5 cursor-pointer">
+<div class="flex justify-between items-center w-full">
+<div class="flex gap-2 items-center">
+<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 uppercase tracking-wide">Commodities</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">High Impact</span>
+</div>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#" title="View Source">
+<span class="material-symbols-outlined text-[14px]">open_in_new</span>
+</a>
+</div>
+<h4 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">Crude Oil Surges Past $85 Amid Supply Concerns</h4>
+<p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">Global benchmark Brent crude jumped nearly 3% following reports of potential supply disruptions in the Middle East...</p>
+<div class="mt-1 bg-slate-100 dark:bg-[#101922] rounded p-2 flex flex-col gap-2 border border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px] text-slate-400">candlestick_chart</span>
+<span class="text-xs font-bold text-slate-900 dark:text-white">USOIL</span>
+<span class="text-xs text-slate-500 font-medium">$85.60</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex gap-1">
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">10%</button>
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">25%</button>
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">50%</button>
+<button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">100%</button>
+</div>
+<div class="flex gap-1.5 flex-1">
+<button class="flex-1 py-1 text-[10px] font-bold rounded bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 transition-colors border border-green-500/20">Long</button>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Financial Times</span>
+<span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+<span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">schedule</span> Yesterday</span>
+</div>
+</div>
+</div>
+</section>
+<section class="flex-1 flex flex-col gap-6 overflow-hidden overflow-y-auto">
+<div class="flex-1 bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[400px]">
+<div class="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3 bg-slate-50 dark:bg-[#1a2634] rounded-t-xl">
+<div class="flex justify-between items-start">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">High Impact</span>
+<span class="text-[10px] font-medium text-slate-500 dark:text-slate-400">10:30 AM, Today</span>
+</div>
+<h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                U.S. Inflation Data Released: Core CPI Rises 0.3%
+            </h3>
+</div>
+<div class="flex gap-2 mt-1">
+<button class="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-[#15202b] border border-slate-200 dark:border-slate-700 transition-colors rounded shadow-sm"><span class="material-symbols-outlined text-sm">bookmark</span></button>
+<button class="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-[#15202b] border border-slate-200 dark:border-slate-700 transition-colors rounded shadow-sm"><span class="material-symbols-outlined text-sm">share</span></button>
+</div>
+</div>
+<div class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed border-l-2 border-primary pl-3 mt-2">
+        The Bureau of Labor Statistics reported today that the Consumer Price Index (CPI) increased 0.3% sequentially, slightly above the consensus estimate of 0.2%. Core CPI, which excludes volatile food and energy prices, also rose 0.3%. Year-over-year inflation stands at 3.2%. The immediate market reaction saw a spike in Treasury yields as investors pared back expectations for near-term rate cuts by the Federal Reserve. Equities, particularly growth and tech sectors, faced downward pressure in early trading following the release.
+    </div>
+</div>
+<div class="flex-1 flex flex-col">
+<div class="w-full flex-1 p-4 flex flex-col">
+<div class="flex justify-between items-center mb-2">
+<div class="flex gap-2">
+<button class="text-xs px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">1H</button>
+<button class="text-xs px-2 py-1 rounded bg-primary text-white shadow-sm">4H</button>
+<button class="text-xs px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">1D</button>
+</div>
+<div class="flex gap-2">
+<button class="text-slate-500 hover:text-slate-900 dark:hover:text-white"><span class="material-symbols-outlined text-sm">candlestick_chart</span></button>
+<button class="text-slate-500 hover:text-slate-900 dark:hover:text-white"><span class="material-symbols-outlined text-sm">draw</span></button>
+</div>
+</div>
+<div class="flex-1 bg-slate-100 dark:bg-[#101922] rounded border border-slate-200 dark:border-slate-800 relative overflow-hidden group/chart min-h-[250px]">
+<svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 1000 300">
+<path class="opacity-30" d="M 0 50 L 1000 50 M 0 100 L 1000 100 M 0 150 L 1000 150 M 0 200 L 1000 200 M 0 250 L 1000 250" fill="none" stroke="#334155" stroke-dasharray="4 4" stroke-width="0.5"></path>
+<path class="opacity-10" d="M 100 0 L 100 300 M 300 0 L 300 300 M 500 0 L 500 300 M 700 0 L 700 300 M 900 0 L 900 300" fill="none" stroke="#334155" stroke-dasharray="4 4" stroke-width="0.5"></path>
+<defs>
+<linearGradient id="chart-grad" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#137fec" stop-opacity="0.3"></stop>
+<stop offset="100%" stop-color="#137fec" stop-opacity="0"></stop>
+</linearGradient>
+</defs>
+<polygon fill="url(#chart-grad)" points="0,300 0,200 100,220 200,180 300,150 400,120 500,200 600,180 700,130 800,100 850,90 900,70 1000,50 1000,300"></polygon>
+<polyline fill="none" points="0,200 100,220 200,180 300,150 400,120 500,200 600,180 700,130 800,100 850,90 900,70 1000,50" stroke="#137fec" stroke-width="2"></polyline>
+<line class="opacity-50" stroke="#ef4444" stroke-dasharray="4 4" stroke-width="1.5" x1="300" x2="300" y1="0" y2="300"></line>
+<line class="opacity-50" stroke="#20b26c" stroke-dasharray="4 4" stroke-width="1.5" x1="600" x2="600" y1="0" y2="300"></line>
+<line class="opacity-50" stroke="#f59e0b" stroke-dasharray="4 4" stroke-width="1.5" x1="850" x2="850" y1="0" y2="300"></line>
+</svg>
+<div class="absolute group" style="left: 30%; top: 50%; transform: translate(-50%, -50%);">
+<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 whitespace-nowrap z-30 opacity-100 flex flex-col items-center">
+<div class="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 font-bold text-xs px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[14px]">campaign</span> Core CPI Rises 0.3%
+        </div>
+<div class="w-px h-4 bg-red-500/50 mt-1"></div>
+</div>
+<div class="w-4 h-4 rounded-full bg-red-500 border-2 border-white dark:border-[#101922] cursor-pointer shadow-[0_0_12px_rgba(239,68,68,0.8)] z-10 relative hover:scale-125 transition-transform animate-pulse-ring"></div>
+<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-12 w-48 bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs rounded-lg p-3 shadow-xl border border-slate-200 dark:border-slate-700 opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-20 translate-y-2 group-hover:translate-y-0">
+<div class="font-bold text-red-500 mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">campaign</span> 10:30 AM</div>
+            FED announces surprise rate hike, triggering sharp sector pullback.
+<div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-white dark:border-t-slate-800"></div>
+</div>
+</div>
+<div class="absolute group" style="left: 60%; top: 60%; transform: translate(-50%, -50%);">
+<div class="w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-[#101922] cursor-pointer shadow-[0_0_8px_rgba(32,178,108,0.8)] z-10 relative hover:scale-125 transition-transform"></div>
+<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs rounded-lg p-3 shadow-xl border border-slate-200 dark:border-slate-700 opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-20 translate-y-2 group-hover:translate-y-0">
+<div class="font-bold text-green-500 mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">trending_up</span> 13:15 PM</div>
+            AAPL beats Q3 expectations, driving strong market recovery.
+<div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-white dark:border-t-slate-800"></div>
+</div>
+</div>
+<div class="absolute group" style="left: 85%; top: 30%; transform: translate(-50%, -50%);">
+<div class="w-3 h-3 rounded-full bg-yellow-500 border-2 border-white dark:border-[#101922] cursor-pointer shadow-[0_0_8px_rgba(245,158,11,0.8)] z-10 relative hover:scale-125 transition-transform"></div>
+<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs rounded-lg p-3 shadow-xl border border-slate-200 dark:border-slate-700 opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-20 translate-y-2 group-hover:translate-y-0">
+<div class="font-bold text-yellow-500 mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">info</span> 15:45 PM</div>
+            Potential merger talks leaked in the semiconductor sector.
+<div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-white dark:border-t-slate-800"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="w-full p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-5 bg-slate-50 dark:bg-[#1a2634]/50 rounded-b-xl">
+<div class="w-full">
+<h4 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Signal Interpretation</h4>
+<p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                            Strong Q3 earnings across major tech firms suggest continued momentum. Key support levels have held despite early session volatility. Expect short-term bullish continuation if 15,200 resistance breaks.
+                        </p>
+</div>
+<div class="w-full border-t border-slate-200 dark:border-slate-700 pt-4">
+<h4 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-sm">smart_toy</span> Automated Trade Recommendations</h4>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+<div class="bg-white dark:bg-[#101922] p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-3 hover:border-primary/50 transition-colors">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="font-bold text-slate-900 dark:text-white">NDX</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">Buy</span>
+</div>
+<span class="text-xs font-medium text-slate-500 dark:text-slate-400">R/R: 1:2.5</span>
+</div>
+<div class="grid grid-cols-2 gap-2 text-sm bg-slate-50 dark:bg-slate-800/50 p-2 rounded">
+<div class="flex flex-col">
+<span class="text-[10px] text-slate-500 uppercase tracking-wider">Auto TP</span>
+<span class="font-semibold text-green-600 dark:text-green-400">15,400</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-slate-500 uppercase tracking-wider">Auto SL</span>
+<span class="font-semibold text-red-600 dark:text-red-400">14,900</span>
+</div>
+</div>
+<button class="w-full bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-semibold py-2 rounded transition-colors flex items-center justify-center gap-1 border border-primary/20 hover:border-transparent mt-1">
+<span class="material-symbols-outlined text-[14px]">bolt</span> Execute Auto-Trade
+                                </button>
+</div>
+<div class="bg-white dark:bg-[#101922] p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-3 hover:border-primary/50 transition-colors">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="font-bold text-slate-900 dark:text-white">AAPL</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">Buy</span>
+</div>
+<span class="text-xs font-medium text-slate-500 dark:text-slate-400">R/R: 1:3.0</span>
+</div>
+<div class="grid grid-cols-2 gap-2 text-sm bg-slate-50 dark:bg-slate-800/50 p-2 rounded">
+<div class="flex flex-col">
+<span class="text-[10px] text-slate-500 uppercase tracking-wider">Auto TP</span>
+<span class="font-semibold text-green-600 dark:text-green-400">195.50</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-slate-500 uppercase tracking-wider">Auto SL</span>
+<span class="font-semibold text-red-600 dark:text-red-400">182.00</span>
+</div>
+</div>
+<button class="w-full bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-semibold py-2 rounded transition-colors flex items-center justify-center gap-1 border border-primary/20 hover:border-transparent mt-1">
+<span class="material-symbols-outlined text-[14px]">bolt</span> Execute Auto-Trade
+                                </button>
+</div>
+<div class="bg-white dark:bg-[#101922] p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-3 hover:border-primary/50 transition-colors">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="font-bold text-slate-900 dark:text-white">MSFT</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">Buy</span>
+</div>
+<span class="text-xs font-medium text-slate-500 dark:text-slate-400">R/R: 1:2.2</span>
+</div>
+<div class="grid grid-cols-2 gap-2 text-sm bg-slate-50 dark:bg-slate-800/50 p-2 rounded">
+<div class="flex flex-col">
+<span class="text-[10px] text-slate-500 uppercase tracking-wider">Auto TP</span>
+<span class="font-semibold text-green-600 dark:text-green-400">355.00</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-slate-500 uppercase tracking-wider">Auto SL</span>
+<span class="font-semibold text-red-600 dark:text-red-400">332.50</span>
+</div>
+</div>
+<button class="w-full bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-semibold py-2 rounded transition-colors flex items-center justify-center gap-1 border border-primary/20 hover:border-transparent mt-1">
+<span class="material-symbols-outlined text-[14px]">bolt</span> Execute Auto-Trade
+                                </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex-shrink-0 mt-6">
+<div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a2634] rounded-t-xl">
+<h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary">history</span> Historical Similar Events Correlation
+                </h3>
+</div>
+<div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#101922] flex flex-col gap-3">
+<div class="flex justify-between items-start">
+<div class="flex flex-col gap-0.5">
+<span class="font-bold text-slate-900 dark:text-white text-sm">Core CPI Rises 0.4%</span>
+<span class="text-xs text-slate-500">Sep 13, 2022</span>
+</div>
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">High Volatility</span>
+</div>
+<div class="h-12 w-full mt-2 relative">
+<svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 20">
+<polyline fill="none" points="0,10 10,9 20,15 30,14 40,16 50,11 60,13 70,8 80,9 90,6 100,4" stroke="#ef4444" stroke-width="1.5"></polyline>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<span class="text-[10px] font-bold text-red-500 dark:text-red-400 bg-white/80 dark:bg-[#101922]/80 px-1 rounded">BTC -3.1% (4H)</span>
+</div>
+</div>
+<div class="text-xs text-slate-600 dark:text-slate-400 mt-1 border-t border-slate-200 dark:border-slate-800 pt-2">
+                            Initial dip followed by partial recovery. Tech underperformed.
+                        </div>
+</div>
+<div class="p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#101922] flex flex-col gap-3">
+<div class="flex justify-between items-start">
+<div class="flex flex-col gap-0.5">
+<span class="font-bold text-slate-900 dark:text-white text-sm">Core CPI Rises 0.2%</span>
+<span class="text-xs text-slate-500">Jul 12, 2023</span>
+</div>
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">Avg Impact +1.5%</span>
+</div>
+<div class="h-12 w-full mt-2 relative">
+<svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 20">
+<polyline fill="none" points="0,15 10,14 20,16 30,12 40,13 50,11 60,12 70,8 80,9 90,7 100,5" stroke="#22c55e" stroke-width="1.5"></polyline>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<span class="text-[10px] font-bold text-green-500 dark:text-green-400 bg-white/80 dark:bg-[#101922]/80 px-1 rounded">NDX +1.8% (4H)</span>
+</div>
+</div>
+<div class="text-xs text-slate-600 dark:text-slate-400 mt-1 border-t border-slate-200 dark:border-slate-800 pt-2">
+                            Softer inflation fueled risk-on sentiment. Broad market rally.
+                        </div>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex-shrink-0 mt-6">
+<div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a2634] rounded-t-xl">
+<h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary">security</span> Portfolio Positions &amp; Hedging Analysis
+                </h3>
+</div>
+<div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+<div class="p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="font-bold text-slate-900 dark:text-white">BTC/USD</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-600 dark:bg-green-500/20 dark:text-green-400">Long</span>
+</div>
+<span class="text-xs font-semibold text-green-600 dark:text-green-400">+$4,500 P&amp;L</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col gap-1">
+<span class="text-[10px] text-slate-500 uppercase tracking-wider">Current Position</span>
+<span class="text-sm font-medium text-slate-900 dark:text-white">Size: 2.5 BTC</span>
+<span class="text-xs text-slate-500">Value: $150,000</span>
+</div>
+<div class="flex flex-col gap-1 border-l border-slate-200 dark:border-slate-700 pl-4">
+<span class="text-[10px] text-primary uppercase tracking-wider">Recommended Hedge</span>
+<span class="text-sm font-medium text-slate-900 dark:text-white">Buy Put Options</span>
+<span class="text-xs text-slate-500">Strike: $55,000</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-auto pt-3 border-t border-slate-200 dark:border-slate-700">
+<div class="flex flex-col">
+<span class="text-xs text-slate-500 dark:text-slate-400">Est. Cost: $350</span>
+<span class="text-[10px] text-slate-400 dark:text-slate-500">Impact: High Risk Reduction</span>
+</div>
+<button class="bg-primary hover:bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors shadow-sm">Execute Hedge</button>
+</div>
+</div>
+<div class="p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="font-bold text-slate-900 dark:text-white">NDX</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-600 dark:bg-green-500/20 dark:text-green-400">Long</span>
+</div>
+<span class="text-xs font-semibold text-green-600 dark:text-green-400">+$1,200 P&amp;L</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col gap-1">
+<span class="text-[10px] text-slate-500 uppercase tracking-wider">Current Position</span>
+<span class="text-sm font-medium text-slate-900 dark:text-white">Size: 100 Cont.</span>
+<span class="text-xs text-slate-500">Value: $15,000</span>
+</div>
+<div class="flex flex-col gap-1 border-l border-slate-200 dark:border-slate-700 pl-4">
+<span class="text-[10px] text-primary uppercase tracking-wider">Recommended Hedge</span>
+<span class="text-sm font-medium text-slate-900 dark:text-white">Short Futures</span>
+<span class="text-xs text-slate-500">Target: 14,800</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-auto pt-3 border-t border-slate-200 dark:border-slate-700">
+<div class="flex flex-col">
+<span class="text-xs text-slate-500 dark:text-slate-400">Est. Cost: $125</span>
+<span class="text-[10px] text-slate-400 dark:text-slate-500">Impact: Med Risk Reduction</span>
+</div>
+<button class="bg-primary hover:bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors shadow-sm">Execute Hedge</button>
+</div>
+</div>
+<div class="p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col gap-4 hidden lg:flex">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="font-bold text-slate-900 dark:text-white">EUR/USD</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400">Short</span>
+</div>
+<span class="text-xs font-semibold text-red-600 dark:text-red-400">-$300 P&amp;L</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col gap-1">
+<span class="text-[10px] text-slate-500 uppercase tracking-wider">Current Position</span>
+<span class="text-sm font-medium text-slate-900 dark:text-white">Size: 100k Lots</span>
+<span class="text-xs text-slate-500">Value: $105,000</span>
+</div>
+<div class="flex flex-col gap-1 border-l border-slate-200 dark:border-slate-700 pl-4">
+<span class="text-[10px] text-primary uppercase tracking-wider">Recommended Hedge</span>
+<span class="text-sm font-medium text-slate-900 dark:text-white">Long USD/CHF</span>
+<span class="text-xs text-slate-500">Pair Correlation</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-auto pt-3 border-t border-slate-200 dark:border-slate-700">
+<div class="flex flex-col">
+<span class="text-xs text-slate-500 dark:text-slate-400">Est. Cost: $85</span>
+<span class="text-[10px] text-slate-400 dark:text-slate-500">Impact: Low Risk Reduction</span>
+</div>
+<button class="bg-primary hover:bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors shadow-sm">Execute Hedge</button>
+</div>
+</div>
+</div>
+</div>
+</div></section>
+</main>
+</body></html>
