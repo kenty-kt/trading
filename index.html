@@ -33,9 +33,10 @@
     .animate-pulse-ring {
         animation: pulse-ring 2s infinite cubic-bezier(0.66, 0, 0, 1);
     }
+    html, body { height: 100%; overflow: hidden; }
 </style>
 </head>
-<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen flex flex-col">
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display flex flex-col overflow-hidden" style="height:100vh">
 <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 px-6 py-3 bg-white dark:bg-[#15202b] sticky top-0 z-50">
 <div class="flex items-center gap-8">
 <div class="flex items-center gap-4 text-primary">
@@ -73,7 +74,7 @@
 </div>
 </div>
 </header>
-<main class="flex-1 overflow-hidden flex flex-col md:flex-row p-4 md:p-6 gap-6" style="height:calc(100vh - 60px)">
+<main class="flex-1 overflow-hidden flex flex-col md:flex-row p-4 md:p-6 gap-6">
 <section class="w-full md:w-[350px] lg:w-[400px] flex flex-col bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-shrink-0 h-full">
 <div class="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a2634]">
 <button class="flex-1 py-3 text-sm font-bold text-primary border-b-2 border-primary transition-colors flex items-center justify-center gap-2">
