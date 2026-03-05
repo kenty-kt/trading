@@ -33,9 +33,12 @@
     .animate-pulse-ring {
         animation: pulse-ring 2s infinite cubic-bezier(0.66, 0, 0, 1);
     }
-    html, body { height: 100%; overflow: hidden; }
-    #left-panel { position:fixed; left:0; top:60px; bottom:0; width:400px; overflow-y:auto; }
-    #right-panel { position:fixed; left:400px; right:0; top:60px; bottom:0; overflow-y:auto; padding:1.5rem; }
+</style>
+<style>
+    html, body { height: 100vh; overflow: hidden; margin: 0; }
+    #left-panel { position: fixed; left: 0; top: 60px; bottom: 0; width: 400px; overflow-y: auto; display: flex; flex-direction: column; background: #15202b; border-right: 1px solid #1e293b; z-index: 10; }
+    #right-panel { position: fixed; left: 400px; right: 0; top: 60px; bottom: 0; overflow-y: auto; padding: 1.5rem; background: #101922; }
+    header { position: fixed; top: 0; left: 0; right: 0; z-index: 50; height: 60px; }
 </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display flex flex-col overflow-hidden" style="height:100vh">
