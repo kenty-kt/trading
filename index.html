@@ -73,8 +73,8 @@
 </div>
 </div>
 </header>
-<main class="flex-1 overflow-hidden flex flex-col md:flex-row p-4 md:p-6 gap-6">
-<section class="w-full md:w-[350px] lg:w-[400px] flex flex-col bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-shrink-0">
+<main class="flex-1 flex flex-col md:flex-row p-4 md:p-6 gap-6 min-h-0 overflow-y-auto">
+<section class="w-full md:w-[350px] lg:w-[400px] flex flex-col bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-shrink-0 self-start sticky top-4">
 <div class="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a2634]">
 <button class="flex-1 py-3 text-sm font-bold text-primary border-b-2 border-primary transition-colors flex items-center justify-center gap-2">
 <span class="material-symbols-outlined text-sm">feed</span> Live News
@@ -83,7 +83,7 @@
 <span class="material-symbols-outlined text-sm">dashboard</span> Market Sectors
     </button>
 </div>
-<div class="flex-1 overflow-y-auto flex flex-col" id="newsFeed">
+<div class="flex-1 flex flex-col" id="newsFeed" style="max-height:600px;overflow-y:auto;">
 <div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-l-2 border-l-primary flex flex-col gap-2.5 cursor-pointer">
 <div class="flex justify-between items-center w-full">
 <div class="flex gap-2 items-center">
@@ -238,7 +238,7 @@
 </div>
 </div>
 </section>
-<section class="flex-1 flex flex-col gap-6 overflow-hidden overflow-y-auto">
+<section class="flex-1 flex flex-col gap-6">
 <div class="flex-1 bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[400px]">
 <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3 bg-slate-50 dark:bg-[#1a2634] rounded-t-xl">
 <div class="flex justify-between items-start">
@@ -590,14 +590,19 @@ function renderTokens(tokens) {
     </div>`;
 }
 
-function renderNews(items) {
+const PAGE_SIZE = 10;
+let currentPage = 1;
+let allNewsItems = [];
+
+function renderPage(page) {
   const feed = document.getElementById('newsFeed');
-  if (!items.length) {
-    feed.innerHTML = '<div class="p-6 text-center text-slate-400 text-sm">No news available</div>';
-    return;
-  }
-  feed.innerHTML = items.map((item, i) => `
-    <div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 ${i===0?'bg-slate-50 dark:bg-slate-800/50 border-l-2 border-l-primary':'bg-white dark:bg-[#15202b] border-l-2 border-l-transparent'} hover:bg-slate-100 dark:hover:bg-[#1a2634] transition-colors flex flex-col gap-2.5 cursor-pointer" onclick="analyzeNews(window._newsItems[${i}])">
+  const start = (page - 1) * PAGE_SIZE;
+  const end = start + PAGE_SIZE;
+  const pageItems = allNewsItems.slice(start, end);
+  const totalPages = Math.ceil(allNewsItems.length / PAGE_SIZE);
+
+  const newsHtml = pageItems.map((item, i) => `
+    <div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 ${i===0 && page===1?'bg-slate-50 dark:bg-slate-800/50 border-l-2 border-l-primary':'bg-white dark:bg-[#15202b] border-l-2 border-l-transparent'} hover:bg-slate-100 dark:hover:bg-[#1a2634] transition-colors flex flex-col gap-2.5 cursor-pointer" onclick="analyzeNews(allNewsItems[${start + i}])">
       <div class="flex justify-between items-center w-full">
         <div class="flex gap-2 items-center">
           <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 uppercase tracking-wide">${item.tag}</span>
@@ -618,8 +623,39 @@ function renderNews(items) {
       </div>
     </div>
   `).join('');
-  window._newsItems = items;
-  // 自动分析第一条
+
+  const paginationHtml = totalPages > 1 ? `
+    <div class="flex items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a2634]">
+      <button onclick="changePage(${page - 1})" ${page <= 1 ? 'disabled' : ''} class="px-3 py-1.5 text-xs font-medium rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-40 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
+        ← Prev
+      </button>
+      <span class="text-xs text-slate-500 dark:text-slate-400">${page} / ${totalPages}</span>
+      <button onclick="changePage(${page + 1})" ${page >= totalPages ? 'disabled' : ''} class="px-3 py-1.5 text-xs font-medium rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-40 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
+        Next →
+      </button>
+    </div>
+  ` : '';
+
+  feed.innerHTML = newsHtml + paginationHtml;
+}
+
+function changePage(page) {
+  const totalPages = Math.ceil(allNewsItems.length / PAGE_SIZE);
+  if (page < 1 || page > totalPages) return;
+  currentPage = page;
+  renderPage(currentPage);
+  document.getElementById('newsFeed').scrollTop = 0;
+}
+
+function renderNews(items) {
+  const feed = document.getElementById('newsFeed');
+  if (!items.length) {
+    feed.innerHTML = '<div class="p-6 text-center text-slate-400 text-sm">No news available</div>';
+    return;
+  }
+  allNewsItems = items;
+  currentPage = 1;
+  renderPage(1);
   if (items.length > 0) analyzeNews(items[0]);
 }
 
