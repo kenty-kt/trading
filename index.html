@@ -83,7 +83,7 @@
 <span class="material-symbols-outlined text-sm">dashboard</span> Market Sectors
     </button>
 </div>
-<div class="flex-1 overflow-y-auto flex flex-col">
+<div class="flex-1 overflow-y-auto flex flex-col" id="newsFeed">
 <div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-l-2 border-l-primary flex flex-col gap-2.5 cursor-pointer">
 <div class="flex justify-between items-center w-full">
 <div class="flex gap-2 items-center">
@@ -545,4 +545,55 @@
 </div>
 </div></section>
 </main>
+<script>
+function timeAgo(dateStr) {
+  const diff = (Date.now() - new Date(dateStr)) / 1000;
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+function renderNews(items) {
+  const feed = document.getElementById('newsFeed');
+  if (!items.length) {
+    feed.innerHTML = '<div class="p-6 text-center text-slate-400 text-sm">No news available</div>';
+    return;
+  }
+  feed.innerHTML = items.map((item, i) => `
+    <a href="${item.link}" target="_blank" class="text-left p-4 border-b border-slate-200 dark:border-slate-800 ${i===0?'bg-slate-50 dark:bg-slate-800/50 border-l-2 border-l-primary':'bg-white dark:bg-[#15202b] border-l-2 border-l-transparent'} hover:bg-slate-100 dark:hover:bg-[#1a2634] transition-colors flex flex-col gap-2.5 cursor-pointer no-underline">
+      <div class="flex justify-between items-center w-full">
+        <div class="flex gap-2 items-center">
+          <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 uppercase tracking-wide">${item.tag}</span>
+        </div>
+        <span class="material-symbols-outlined text-[14px] text-slate-400">open_in_new</span>
+      </div>
+      <h4 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">${item.title}</h4>
+      <p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">${item.description}</p>
+      <div class="flex items-center gap-2 mt-1">
+        <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">${item.source}</span>
+        <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+        <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
+          <span class="material-symbols-outlined text-[12px]">schedule</span> ${timeAgo(item.pubDate)}
+        </span>
+      </div>
+    </a>
+  `).join('');
+}
+
+async function loadNews() {
+  const feed = document.getElementById('newsFeed');
+  feed.innerHTML = '<div class="p-6 text-center text-slate-400 text-sm">Loading...</div>';
+  try {
+    const res = await fetch('/api/news');
+    const data = await res.json();
+    renderNews(data.items || []);
+  } catch(e) {
+    feed.innerHTML = '<div class="p-6 text-center text-red-400 text-sm">Failed to load news</div>';
+  }
+}
+
+loadNews();
+setInterval(loadNews, 60000); // 每分钟刷新
+</script>
 </body></html>
