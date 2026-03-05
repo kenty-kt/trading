@@ -288,9 +288,9 @@
 <div class="w-full p-3 flex flex-col gap-2">
   <div class="flex justify-between items-center">
     <div class="flex gap-2" id="intervalBtns">
-      <button onclick="setInterval('1')" class="interval-btn text-xs px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">1H</button>
-      <button onclick="setInterval('4')" class="interval-btn text-xs px-2 py-1 rounded bg-primary text-white shadow-sm active-interval">4H</button>
-      <button onclick="setInterval('D')" class="interval-btn text-xs px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">1D</button>
+      <button onclick="setInterval('1',this)" class="interval-btn text-xs px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">1H</button>
+      <button onclick="setInterval('4',this)" class="interval-btn text-xs px-2 py-1 rounded bg-primary text-white shadow-sm">4H</button>
+      <button onclick="setInterval('D',this)" class="interval-btn text-xs px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">1D</button>
     </div>
     <span id="chartSymbolLabel" class="text-xs font-bold text-primary">BTCUSDT</span>
   </div>
@@ -492,20 +492,24 @@ function getIntervalValue(label) {
   return { '1': '60', '4': '240', 'D': 'D' }[label] || '240';
 }
 
-function setInterval(label) {
+function setInterval(label, btn) {
   document.querySelectorAll('.interval-btn').forEach(b => {
     b.classList.remove('bg-primary', 'text-white', 'shadow-sm');
-    b.classList.add('bg-slate-200', 'dark:bg-slate-700', 'text-slate-700', 'dark:text-slate-300');
+    b.classList.add('bg-slate-200', 'text-slate-700');
   });
-  event.target.classList.add('bg-primary', 'text-white', 'shadow-sm');
-  event.target.classList.remove('bg-slate-200', 'dark:bg-slate-700', 'text-slate-700', 'dark:text-slate-300');
+  btn.classList.add('bg-primary', 'text-white', 'shadow-sm');
+  btn.classList.remove('bg-slate-200', 'text-slate-700');
   currentInterval = getIntervalValue(label);
   if (tvWidget) {
-    tvWidget.chart().setResolution(currentInterval);
+    tvWidget.chart().setResolution(currentInterval, () => {
+      // 切换完成后重新渲染标记
+      setTimeout(() => renderNewsMarkers(window._currentNewsItems), 300);
+    });
   }
 }
 
 function renderNewsMarkers(newsItems) {
+  window._currentNewsItems = newsItems;
   const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'];
   const markersEl = document.getElementById('news_markers');
   const legendEl = document.getElementById('news_legend');
