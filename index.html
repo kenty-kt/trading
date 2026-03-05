@@ -540,45 +540,41 @@ function initChart(symbol, newsItems) {
       'paneProperties.backgroundType': 'solid',
     },
     onChartReady: function() {
-      // 标记新闻时间点 - 醒目旗帜
       if (newsItems && newsItems.length) {
+        const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'];
         newsItems.slice(0, 10).forEach((item, idx) => {
           const ts = new Date(item.pubDate).getTime() / 1000;
-          const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'];
           const color = colors[idx % colors.length];
           try {
-            tvWidget.chart().createMultipointShape(
-              [{ time: ts, price: 0 }],
-              {
-                shape: 'flag',
-                lock: true,
-                disableSelection: false,
-                overrides: {
-                  color: color,
-                  fontsize: 12,
-                  bold: true,
-                  text: (idx + 1) + '. ' + item.title.slice(0, 30),
+            tvWidget.chart().createExecutionShape()
+              .setTime(ts)
+              .setDirection('buy')
+              .setArrowColor(color)
+              .setArrowHeight(20)
+              .setArrowSpacing(4)
+              .setFont('bold 11px Arial')
+              .setTextColor(color)
+              .setText((idx + 1) + '. ' + item.title.slice(0, 25));
+          } catch(e1) {
+            try {
+              tvWidget.chart().createShape(
+                { time: ts, channel: 'high' },
+                {
+                  shape: 'arrow_up',
+                  lock: false,
+                  overrides: {
+                    arrowColor: color,
+                    arrowSize: 2,
+                    showLabel: true,
+                    text: '' + (idx + 1),
+                    textcolor: color,
+                    fontsize: 13,
+                    bold: true,
+                    backgroundColor: color,
+                  }
                 }
-              }
-            );
-          } catch(e) {
-            // 降级：用竖线
-            tvWidget.chart().createShape(
-              { time: ts },
-              {
-                shape: 'vertical_line',
-                overrides: {
-                  linecolor: color,
-                  linewidth: 2,
-                  linestyle: 0,
-                  showLabel: true,
-                  text: (idx + 1) + '',
-                  textcolor: color,
-                  fontsize: 14,
-                  bold: true,
-                }
-              }
-            );
+              );
+            } catch(e2) { console.log('shape err', e2); }
           }
         });
       }
