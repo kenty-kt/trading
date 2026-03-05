@@ -6,13 +6,17 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { title, description, tokens } = req.body;
+  const { title, description, tokens, lang = 'en' } = req.body;
 
   const tokenInfo = tokens && tokens.length
     ? tokens.map(t => `${t.symbol}: $${t.price?.toLocaleString()} (24h: ${t.change24h?.toFixed(2)}%)`).join(', ')
     : 'No specific tokens identified';
 
-  const prompt = `You are a professional crypto market analyst. Analyze the following news and provide trading insights.
+  const langInstruction = lang === 'zh'
+    ? 'Respond in Simplified Chinese.'
+    : 'Respond in English.';
+
+  const prompt = `You are a professional crypto market analyst. Analyze the following news and provide trading insights. ${langInstruction}
 
 News Title: ${title}
 Summary: ${description}

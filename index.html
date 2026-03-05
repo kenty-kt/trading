@@ -660,9 +660,20 @@ function timeAgo(dateStr) {
 
 async function analyzeNews(item) {
   window._currentItem = item;
+
   // 更新右侧新闻正文
-  document.getElementById('newsTitle').textContent = item.title;
-  document.getElementById('newsBody').textContent = item.description.replace(/\.\.\.$/, '');
+  let title = item.title;
+  let body = item.description.replace(/\.\.\.$/, '');
+
+  // 如果是中文模式，先翻译标题和正文
+  if (currentLang === 'zh') {
+    const translated = await translateToZh([title, body]);
+    title = translated[0] || title;
+    body = translated[1] || body;
+  }
+
+  document.getElementById('newsTitle').textContent = title;
+  document.getElementById('newsBody').textContent = body;
   document.getElementById('newsTime').textContent = timeAgo(item.pubDate) + ' · ' + item.source;
   document.getElementById('newsSourceLink').href = item.link;
   document.getElementById('newsImpactBadge').textContent = item.tag;
@@ -692,7 +703,8 @@ async function analyzeNews(item) {
       body: JSON.stringify({
         title: item.title,
         description: item.description,
-        tokens: item.tokens || []
+        tokens: item.tokens || [],
+        lang: currentLang
       })
     });
     const data = await res.json();
@@ -790,12 +802,21 @@ const PAGE_SIZE = 10;
 let currentPage = 1;
 let allNewsItems = [];
 
-function renderPage(page) {
+async function renderPage(page) {
   const feed = document.getElementById('newsFeed');
   const start = (page - 1) * PAGE_SIZE;
   const end = start + PAGE_SIZE;
   const pageItems = allNewsItems.slice(start, end);
   const totalPages = Math.ceil(allNewsItems.length / PAGE_SIZE);
+
+  // 中文模式下翻译标题和描述
+  let titles = pageItems.map(i => i.title);
+  let descs = pageItems.map(i => i.description);
+  if (currentLang === 'zh') {
+    const all = await translateToZh([...titles, ...descs]);
+    titles = all.slice(0, pageItems.length);
+    descs = all.slice(pageItems.length);
+  }
 
   const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'];
   const newsHtml = pageItems.map((item, i) => {
@@ -811,8 +832,8 @@ function renderPage(page) {
           <span class="material-symbols-outlined text-[14px]">open_in_new</span>
         </a>
       </div>
-      <h4 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">${item.title}</h4>
-      <p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">${item.description}</p>
+      <h4 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">${titles[i]}</h4>
+      <p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">${descs[i]}</p>
       ${renderTokens(item.tokens)}
       <div class="flex items-center gap-2 mt-1">
         <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">${item.source}</span>
@@ -839,7 +860,7 @@ function renderPage(page) {
   feed.innerHTML = newsHtml + paginationHtml;
 }
 
-function changePage(page) {
+async function changePage(page) {
   const totalPages = Math.ceil(allNewsItems.length / PAGE_SIZE);
   if (page < 1 || page > totalPages) return;
   currentPage = page;
