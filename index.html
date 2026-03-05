@@ -318,49 +318,10 @@
 <div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a2634] rounded-t-xl">
 <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
 <span class="material-symbols-outlined text-sm text-primary">history</span> Historical Similar Events Correlation
-                </h3>
+</h3>
 </div>
-<div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-<div class="p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#101922] flex flex-col gap-3">
-<div class="flex justify-between items-start">
-<div class="flex flex-col gap-0.5">
-<span class="font-bold text-slate-900 dark:text-white text-sm">Core CPI Rises 0.4%</span>
-<span class="text-xs text-slate-500">Sep 13, 2022</span>
-</div>
-<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">High Volatility</span>
-</div>
-<div class="h-12 w-full mt-2 relative">
-<svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 20">
-<polyline fill="none" points="0,10 10,9 20,15 30,14 40,16 50,11 60,13 70,8 80,9 90,6 100,4" stroke="#ef4444" stroke-width="1.5"></polyline>
-</svg>
-<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-<span class="text-[10px] font-bold text-red-500 dark:text-red-400 bg-white/80 dark:bg-[#101922]/80 px-1 rounded">BTC -3.1% (4H)</span>
-</div>
-</div>
-<div class="text-xs text-slate-600 dark:text-slate-400 mt-1 border-t border-slate-200 dark:border-slate-800 pt-2">
-                            Initial dip followed by partial recovery. Tech underperformed.
-                        </div>
-</div>
-<div class="p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#101922] flex flex-col gap-3">
-<div class="flex justify-between items-start">
-<div class="flex flex-col gap-0.5">
-<span class="font-bold text-slate-900 dark:text-white text-sm">Core CPI Rises 0.2%</span>
-<span class="text-xs text-slate-500">Jul 12, 2023</span>
-</div>
-<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">Avg Impact +1.5%</span>
-</div>
-<div class="h-12 w-full mt-2 relative">
-<svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 20">
-<polyline fill="none" points="0,15 10,14 20,16 30,12 40,13 50,11 60,12 70,8 80,9 90,7 100,5" stroke="#22c55e" stroke-width="1.5"></polyline>
-</svg>
-<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-<span class="text-[10px] font-bold text-green-500 dark:text-green-400 bg-white/80 dark:bg-[#101922]/80 px-1 rounded">NDX +1.8% (4H)</span>
-</div>
-</div>
-<div class="text-xs text-slate-600 dark:text-slate-400 mt-1 border-t border-slate-200 dark:border-slate-800 pt-2">
-                            Softer inflation fueled risk-on sentiment. Broad market rally.
-                        </div>
-</div>
+<div id="histEventsGrid" class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div class="col-span-2 text-center text-slate-400 text-xs py-4">Click a news item to load historical correlation</div>
 </div>
 </div>
 <div class="bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex-shrink-0 mt-6">
@@ -580,6 +541,109 @@ function initChart(symbol, newsItems) {
   });
 }
 
+// 历史相似事件 - 取过去3个相同时间段的真实K线
+async function loadHistoricalEvents(symbol, newsTimestamp) {
+  const grid = document.getElementById('histEventsGrid');
+  grid.innerHTML = '<div class="col-span-2 text-center text-slate-400 text-xs py-4 animate-pulse">Loading historical data...</div>';
+
+  const binanceSymbol = (TV_SYMBOL_MAP[symbol] || 'BINANCE:BTCUSDT').replace('BINANCE:', '');
+  const windowSec = 24 * 3600; // 24小时窗口
+  const newsTs = Math.floor(new Date(newsTimestamp).getTime() / 1000);
+
+  // 取过去3年同期数据
+  const periods = [
+    { label: '1 Year Ago', offset: 365 * 24 * 3600 },
+    { label: '6 Months Ago', offset: 180 * 24 * 3600 },
+    { label: '3 Months Ago', offset: 90 * 24 * 3600 },
+  ];
+
+  const results = await Promise.all(periods.map(async p => {
+    const from = newsTs - p.offset;
+    const to = from + windowSec;
+    try {
+      const r = await fetch(`/api/history?symbol=${binanceSymbol}&from=${from}&to=${to}`);
+      const d = await r.json();
+      return { ...p, ...d, from, to };
+    } catch(e) {
+      return { ...p, error: true };
+    }
+  }));
+
+  grid.innerHTML = results.map((r, idx) => {
+    if (r.error || !r.candles || !r.candles.length) return '';
+    const change = parseFloat(r.change);
+    const isPos = change >= 0;
+    const color = isPos ? '#10b981' : '#ef4444';
+    const badgeClass = isPos
+      ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400'
+      : 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400';
+    const dateStr = new Date(r.from * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const canvasId = `hist_canvas_${idx}`;
+
+    return `
+    <div class="p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#101922] flex flex-col gap-3">
+      <div class="flex justify-between items-start">
+        <div class="flex flex-col gap-0.5">
+          <span class="font-bold text-slate-900 dark:text-white text-sm">${symbol} · ${r.label}</span>
+          <span class="text-xs text-slate-500">${dateStr}</span>
+        </div>
+        <span class="px-2 py-0.5 rounded text-[10px] font-medium ${badgeClass}">
+          ${isPos ? '+' : ''}${change}%
+        </span>
+      </div>
+      <canvas id="${canvasId}" height="48" style="width:100%;display:block;"></canvas>
+    </div>`;
+  }).join('');
+
+  // 渲染 canvas 折线图
+  results.forEach((r, idx) => {
+    if (r.error || !r.candles || !r.candles.length) return;
+    const canvas = document.getElementById(`hist_canvas_${idx}`);
+    if (!canvas) return;
+    canvas.width = canvas.offsetWidth || 300;
+    const ctx = canvas.getContext('2d');
+    const prices = r.candles.map(c => c.c);
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const range = max - min || 1;
+    const w = canvas.width;
+    const h = canvas.height;
+    const change = parseFloat(r.change);
+    const color = change >= 0 ? '#10b981' : '#ef4444';
+
+    ctx.clearRect(0, 0, w, h);
+
+    // 渐变填充
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, color + '44');
+    grad.addColorStop(1, color + '00');
+
+    ctx.beginPath();
+    prices.forEach((p, i) => {
+      const x = (i / (prices.length - 1)) * w;
+      const y = h - ((p - min) / range) * (h - 4) - 2;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.lineTo(w, h);
+    ctx.lineTo(0, h);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // 折线
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = 'round';
+    prices.forEach((p, i) => {
+      const x = (i / (prices.length - 1)) * w;
+      const y = h - ((p - min) / range) * (h - 4) - 2;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  });
+}
+
 function timeAgo(dateStr) {
   const diff = (Date.now() - new Date(dateStr)) / 1000;
   if (diff < 60) return 'Just now';
@@ -604,6 +668,9 @@ async function analyzeNews(item) {
   const firstToken = item.tokens && item.tokens[0];
   const chartSymbol = firstToken ? firstToken.symbol : 'BTC';
   initChart(chartSymbol, allNewsItems);
+
+  // 加载历史相似事件
+  loadHistoricalEvents(chartSymbol, item.pubDate);
   const signalText = document.getElementById('signalText');
   const signalBadge = document.getElementById('signalBadge');
   const tradeRecs = document.getElementById('tradeRecs');
