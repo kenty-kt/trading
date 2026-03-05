@@ -71,10 +71,10 @@
 <h2 class="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-[-0.015em]">NewsTrade Pro</h2>
 </div>
 <div class="flex items-center gap-6 hidden md:flex">
-<a class="text-primary text-sm font-medium leading-normal" href="#">Dashboard</a>
-<a class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium leading-normal transition-colors" href="#">News Feed</a>
-<a class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium leading-normal transition-colors" href="#">Analysis</a>
-<a class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium leading-normal transition-colors" href="#">Portfolio</a>
+<a class="text-primary text-sm font-medium leading-normal" href="#"><span data-i18n="nav.dashboard">Dashboard</span></a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium leading-normal transition-colors" href="#"><span data-i18n="nav.newsfeed">News Feed</span></a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium leading-normal transition-colors" href="#"><span data-i18n="nav.analysis">Analysis</span></a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium leading-normal transition-colors" href="#"><span data-i18n="nav.portfolio">Portfolio</span></a>
 </div>
 </div>
 <div class="flex flex-1 justify-end gap-4 md:gap-8 items-center">
@@ -87,6 +87,10 @@
 </div>
 </label>
 <div class="flex gap-2">
+<button onclick="toggleLang()" id="langBtn" class="flex items-center justify-center rounded-lg h-10 px-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors gap-1" title="Switch Language">
+  <span class="material-symbols-outlined text-lg">translate</span>
+  <span id="langLabel" style="font-size:11px;font-weight:700;letter-spacing:0.05em;">EN</span>
+</button>
 <button class="flex items-center justify-center rounded-lg h-10 w-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
 <span class="material-symbols-outlined text-xl">notifications</span>
 </button>
@@ -103,10 +107,10 @@
 <section id="left-panel" style="background:#15202b;border-right:1px solid #1e293b;display:flex;flex-direction:column">
 <div class="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a2634]">
 <button class="flex-1 py-3 text-sm font-bold text-primary border-b-2 border-primary transition-colors flex items-center justify-center gap-2">
-<span class="material-symbols-outlined text-sm">feed</span> Live News
+<span class="material-symbols-outlined text-sm">feed</span><span data-i18n="tab.livenews">Live News</span>
     </button>
 <button class="flex-1 py-3 text-sm font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border-b-2 border-transparent hover:border-slate-300 dark:hover:border-slate-600 transition-colors flex items-center justify-center gap-2">
-<span class="material-symbols-outlined text-sm">dashboard</span> Market Sectors
+<span class="material-symbols-outlined text-sm">dashboard</span><span data-i18n="tab.sectors">Market Sectors</span>
     </button>
 </div>
 <div style="flex:1;overflow-y:auto" id="newsFeed">
@@ -300,7 +304,7 @@
 <div class="w-full p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-5 bg-slate-50 dark:bg-[#1a2634]/50 rounded-b-xl">
 <div class="w-full">
 <h4 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-  <span class="material-symbols-outlined text-sm">psychology</span> Signal Interpretation
+  <span class="material-symbols-outlined text-sm">psychology</span> <span data-i18n="label.signal">Signal Interpretation</span>
   <span id="signalBadge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold"></span>
 </h4>
 <p id="signalText" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
@@ -308,7 +312,7 @@
 </p>
 </div>
 <div class="w-full border-t border-slate-200 dark:border-slate-700 pt-4">
-<h4 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-sm">smart_toy</span> Automated Trade Recommendations</h4>
+<h4 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-sm">smart_toy</span> <span data-i18n="label.recommendations">Automated Trade Recommendations</span></h4>
 <div id="tradeRecs" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
   <div class="col-span-3 text-center text-slate-400 text-xs py-4">Select a news item to generate recommendations</div>
 </div>
@@ -329,7 +333,7 @@
 <div class="bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex-shrink-0 mt-6">
 <div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a2634] rounded-t-xl">
 <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-<span class="material-symbols-outlined text-sm text-primary">security</span> Portfolio Positions &amp; Hedging Analysis
+<span class="material-symbols-outlined text-sm text-primary">security</span> <span data-i18n="label.portfolio">Portfolio Positions &amp; Hedging Analysis</span>
                 </h3>
 </div>
 <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1111,6 +1115,93 @@ function openTradeModal(rec) {
   document.getElementById('slInput').value = rec.sl || '';
   setTradeDir(rec.action === 'Long' ? 'long' : 'short');
   setTimeout(fetchQuote, 300);
+}
+
+// ===== 多语言系统 =====
+let currentLang = 'en';
+let zhCache = {}; // 翻译缓存
+
+// 需要翻译的静态 UI 文本（data-i18n 属性）
+const I18N_EN = {
+  'nav.dashboard': 'Dashboard',
+  'nav.newsfeed': 'News Feed',
+  'nav.analysis': 'Analysis',
+  'nav.portfolio': 'Portfolio',
+  'tab.livenews': 'Live News',
+  'tab.sectors': 'Market Sectors',
+  'label.signal': 'Signal Interpretation',
+  'label.recommendations': 'Automated Trade Recommendations',
+  'label.historical': 'Historical Similar Events Correlation',
+  'label.portfolio': 'Portfolio Positions & Hedging Analysis',
+  'placeholder.search': 'Search markets, news...',
+  'btn.execute': 'Execute Auto-Trade',
+  'btn.connect': 'Connect Wallet',
+  'btn.confirm': 'Confirm Trade on Jupiter',
+  'modal.title': 'Execute Trade · Jupiter DEX',
+  'label.token': 'Token',
+  'label.price': 'Current Price',
+  'label.amount': 'Amount (USDC)',
+  'label.slippage': 'Slippage',
+  'label.tp': 'Take Profit',
+  'label.sl': 'Stop Loss',
+  'label.spot': 'Spot',
+};
+
+async function translateToZh(texts) {
+  const toTranslate = texts.filter(t => !zhCache[t]);
+  if (toTranslate.length > 0) {
+    try {
+      const r = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts: toTranslate })
+      });
+      const d = await r.json();
+      if (d.translations) {
+        toTranslate.forEach((t, i) => { zhCache[t] = d.translations[i]; });
+      }
+    } catch(e) { console.log('translate error', e); }
+  }
+  return texts.map(t => zhCache[t] || t);
+}
+
+async function applyLang(lang) {
+  currentLang = lang;
+  document.getElementById('langLabel').textContent = lang === 'zh' ? '中文' : 'EN';
+
+  if (lang === 'zh') {
+    // 翻译所有带 data-i18n 属性的元素
+    const els = document.querySelectorAll('[data-i18n]');
+    const keys = [...new Set([...els].map(el => el.getAttribute('data-i18n')))];
+    const enTexts = keys.map(k => I18N_EN[k] || k);
+    const zhTexts = await translateToZh(enTexts);
+    const map = {};
+    keys.forEach((k, i) => { map[k] = zhTexts[i]; });
+    els.forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (map[key]) {
+        if (el.tagName === 'INPUT') el.placeholder = map[key];
+        else el.textContent = map[key];
+      }
+    });
+  } else {
+    // 还原英文
+    const els = document.querySelectorAll('[data-i18n]');
+    els.forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (I18N_EN[key]) {
+        if (el.tagName === 'INPUT') el.placeholder = I18N_EN[key];
+        else el.textContent = I18N_EN[key];
+      }
+    });
+  }
+}
+
+async function toggleLang() {
+  const next = currentLang === 'en' ? 'zh' : 'en';
+  document.getElementById('langBtn').style.opacity = '0.5';
+  await applyLang(next);
+  document.getElementById('langBtn').style.opacity = '1';
 }
 
 function closeTradeModal(e) {
