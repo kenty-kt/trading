@@ -1,4 +1,3 @@
-// Token 关键词映射表
 const TOKEN_MAP = {
   'bitcoin': 'bitcoin', 'btc': 'bitcoin',
   'ethereum': 'ethereum', 'eth': 'ethereum',
@@ -20,7 +19,6 @@ const TOKEN_MAP = {
   'bnb': 'binancecoin', 'binance': 'binancecoin',
 };
 
-// 从标题中提取 token
 function extractTokens(title) {
   const lower = title.toLowerCase();
   const found = new Set();
@@ -31,7 +29,7 @@ function extractTokens(title) {
   return [...found];
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   const feeds = [
@@ -39,7 +37,6 @@ export default async function handler(req, res) {
   ];
 
   try {
-    // 1. 拉 RSS
     const results = await Promise.all(feeds.map(async (url) => {
       const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
       return r.text();
@@ -65,10 +62,8 @@ export default async function handler(req, res) {
     items.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
     const top20 = items.slice(0, 20);
 
-    // 2. 收集所有需要查询的 token id
     const allIds = [...new Set(top20.flatMap(i => i.tokenIds))];
 
-    // 3. 从 CoinGecko 拉价格
     let priceMap = {};
     if (allIds.length > 0) {
       const cgUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${allIds.join(',')}&order=market_cap_desc&sparkline=false&price_change_percentage=24h`;
@@ -87,7 +82,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // 4. 给每条新闻附上 token 数据
     const enriched = top20.map(item => ({
       ...item,
       tokens: item.tokenIds.map(id => priceMap[id]).filter(Boolean),
@@ -97,4 +91,4 @@ export default async function handler(req, res) {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
-}
+};
