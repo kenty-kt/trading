@@ -536,7 +536,6 @@ function renderNewsMarkers(newsItems) {
 
 function initChart(symbol, newsItems) {
   const tvSymbol = TV_SYMBOL_MAP[symbol] || 'BINANCE:BTCUSDT';
-  document.getElementById('chartSymbolLabel').textContent = symbol + 'USDT';
 
   if (tvWidget) {
     tvWidget.remove();
