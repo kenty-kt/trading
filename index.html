@@ -1622,12 +1622,54 @@ loadNews();
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <div style="display:flex;flex-direction:column;gap:4px;">
         <span style="font-size:11px;color:#64748b;">Take Profit</span>
-        <input id="tpInput" type="text" placeholder="e.g. 75000" style="padding:6px 10px;background:#101922;border:1px solid #334155;border-radius:6px;color:#10b981;font-size:13px;outline:none;"/>
+        <input id="tpInput" type="text" placeholder="e.g. 75000" style="padding:6px 10px;background:#101922;border:1px solid #334155;border-radius:6px;color:#10b981;font-size:13px;outline:none;" oninput="updateRiskCalc()"/>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;">
         <span style="font-size:11px;color:#64748b;">Stop Loss</span>
-        <input id="slInput" type="text" placeholder="e.g. 68000" style="padding:6px 10px;background:#101922;border:1px solid #334155;border-radius:6px;color:#ef4444;font-size:13px;outline:none;"/>
+        <input id="slInput" type="text" placeholder="e.g. 68000" style="padding:6px 10px;background:#101922;border:1px solid #334155;border-radius:6px;color:#ef4444;font-size:13px;outline:none;" oninput="updateRiskCalc()"/>
       </div>
+    </div>
+
+    <!-- 风险计算器 -->
+    <div id="riskCalcBox" style="background:#0d1520;border:1px solid #1e293b;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+        <span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:4px;">
+          <span class="material-symbols-outlined" style="font-size:12px;">calculate</span> Risk Calculator
+        </span>
+        <!-- 风险比例调节 -->
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span style="font-size:10px;color:#475569;">Risk</span>
+          <button onclick="setRiskPct(1)" id="riskBtn1" style="padding:2px 6px;font-size:10px;background:#137fec;color:#fff;border:none;border-radius:4px;cursor:pointer;">1%</button>
+          <button onclick="setRiskPct(2)" id="riskBtn2" style="padding:2px 6px;font-size:10px;background:#1e293b;color:#94a3b8;border:none;border-radius:4px;cursor:pointer;">2%</button>
+          <button onclick="setRiskPct(3)" id="riskBtn3" style="padding:2px 6px;font-size:10px;background:#1e293b;color:#94a3b8;border:none;border-radius:4px;cursor:pointer;">3%</button>
+        </div>
+      </div>
+
+      <!-- 计算结果网格 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <div style="background:#101922;border-radius:6px;padding:8px 10px;">
+          <div style="font-size:9px;color:#475569;margin-bottom:3px;">Max Risk Amount</div>
+          <div id="rc_riskAmt" style="font-size:14px;font-weight:700;color:#ef4444;">--</div>
+        </div>
+        <div style="background:#101922;border-radius:6px;padding:8px 10px;">
+          <div style="font-size:9px;color:#475569;margin-bottom:3px;">Suggested Position</div>
+          <div id="rc_posSuggested" style="font-size:14px;font-weight:700;color:#137fec;">--</div>
+        </div>
+        <div style="background:#101922;border-radius:6px;padding:8px 10px;">
+          <div style="font-size:9px;color:#475569;margin-bottom:3px;">SL Distance</div>
+          <div id="rc_slDist" style="font-size:14px;font-weight:700;color:#f59e0b;">--</div>
+        </div>
+        <div style="background:#101922;border-radius:6px;padding:8px 10px;">
+          <div style="font-size:9px;color:#475569;margin-bottom:3px;">R:R Ratio</div>
+          <div id="rc_rr" style="font-size:14px;font-weight:700;color:#10b981;">--</div>
+        </div>
+      </div>
+
+      <!-- 建议仓位提示 -->
+      <div id="rc_advice" style="font-size:11px;color:#64748b;line-height:1.5;display:none;"></div>
+      <button id="rc_applyBtn" onclick="applyRiskPosition()" style="display:none;font-size:11px;padding:5px 12px;background:#137fec22;color:#137fec;border:1px solid #137fec44;border-radius:5px;cursor:pointer;align-items:center;gap:4px;">
+        <span class="material-symbols-outlined" style="font-size:12px;">sync</span> Apply suggested position
+      </button>
     </div>
 
     <!-- 确认按钮 -->
@@ -1694,6 +1736,83 @@ function setSlippage(pct) {
     b.style.background = b.textContent === pct + '%' ? '#137fec' : '#1e293b';
     b.style.color = b.textContent === pct + '%' ? '#fff' : '#94a3b8';
   });
+
+// ===== 风险计算器 =====
+let _riskPct = 1; // 默认风险 1%
+
+function setRiskPct(pct) {
+  _riskPct = pct;
+  ['1','2','3'].forEach(v => {
+    const btn = document.getElementById('riskBtn' + v);
+    if (btn) {
+      btn.style.background = v == pct ? '#137fec' : '#1e293b';
+      btn.style.color = v == pct ? '#fff' : '#94a3b8';
+    }
+  });
+  updateRiskCalc();
+}
+
+function updateRiskCalc() {
+  const entryPrice = parseFloat(document.getElementById('tradePrice')?.textContent?.replace(/[^0-9.]/g,'')) || 0;
+  const sl = parseFloat(document.getElementById('slInput')?.value) || 0;
+  const tp = parseFloat(document.getElementById('tpInput')?.value) || 0;
+  const dir = currentTradeDir || 'long';
+
+  // 钱包余额（USDC）
+  const walletText = document.getElementById('walletAddr')?.textContent || '';
+  // 尝试从 portfolio 拿 USDC 余额，否则用手动输入金额作为账户估算
+  const balance = window._walletUSDCBalance || parseFloat(document.getElementById('tradeAmount')?.value) * 10 || 1000;
+
+  const riskAmt = (balance * _riskPct / 100);
+
+  // SL 距离（%）
+  let slDistPct = 0;
+  if (entryPrice > 0 && sl > 0) {
+    slDistPct = dir === 'long'
+      ? ((entryPrice - sl) / entryPrice) * 100
+      : ((sl - entryPrice) / entryPrice) * 100;
+  }
+
+  // 建议仓位 = 风险金额 / SL距离%
+  const suggestedPos = slDistPct > 0 ? riskAmt / (slDistPct / 100) : 0;
+
+  // R:R 比
+  let rr = 0;
+  if (sl > 0 && tp > 0 && entryPrice > 0) {
+    const reward = dir === 'long' ? tp - entryPrice : entryPrice - tp;
+    const risk   = dir === 'long' ? entryPrice - sl  : sl - entryPrice;
+    rr = risk > 0 ? reward / risk : 0;
+  }
+
+  // 更新 UI
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('rc_riskAmt',      riskAmt > 0 ? '$' + riskAmt.toFixed(2) : '--');
+  set('rc_posSuggested', suggestedPos > 0 ? '$' + suggestedPos.toFixed(2) : '--');
+  set('rc_slDist',       slDistPct > 0 ? slDistPct.toFixed(2) + '%' : '--');
+  set('rc_rr',           rr > 0 ? '1 : ' + rr.toFixed(1) : '--');
+
+  // 建议文字
+  const advice = document.getElementById('rc_advice');
+  if (advice) {
+    if (suggestedPos > 0) {
+      const current = parseFloat(document.getElementById('tradeAmount')?.value) || 0;
+      const diff = suggestedPos - current;
+      let msg = `Based on ${_riskPct}% account risk, suggested position: <strong style="color:#137fec;">$${suggestedPos.toFixed(2)}</strong>.`;
+      if (rr > 0 && rr < 1.5) msg += ` <span style="color:#f59e0b;">⚠ R:R below 1.5 — consider tightening SL or widening TP.</span>`;
+      else if (rr >= 2) msg += ` <span style="color:#10b981;">✓ Good R:R ratio.</span>`;
+      advice.innerHTML = msg;
+      advice.style.display = 'block';
+    } else {
+      advice.style.display = 'none';
+    }
+  }
+
+  // 自动填入建议仓位
+  if (suggestedPos > 0) {
+    const btn = document.getElementById('rc_applyBtn');
+    if (btn) btn.style.display = 'inline-flex';
+  }
+}
 }
 
 let quoteTimeout = null;
@@ -1790,6 +1909,22 @@ async function executeSwap() {
   }
 }
 
+function applyRiskPosition() {
+  const entryPrice = parseFloat(document.getElementById('tradePrice')?.textContent?.replace(/[^0-9.]/g,'')) || 0;
+  const sl = parseFloat(document.getElementById('slInput')?.value) || 0;
+  const dir = currentTradeDir || 'long';
+  const balance = window._walletUSDCBalance || parseFloat(document.getElementById('tradeAmount')?.value) * 10 || 1000;
+  const riskAmt = balance * _riskPct / 100;
+  const slDistPct = entryPrice > 0 && sl > 0
+    ? (dir === 'long' ? (entryPrice - sl) / entryPrice : (sl - entryPrice) / entryPrice) * 100
+    : 0;
+  if (slDistPct > 0) {
+    const pos = riskAmt / (slDistPct / 100);
+    document.getElementById('tradeAmount').value = pos.toFixed(2);
+    updateQuote();
+  }
+}
+
 function openTradeModal(rec) {
   currentTradeRec = rec;
   document.getElementById('tradeModal').style.display = 'block';
@@ -1798,7 +1933,7 @@ function openTradeModal(rec) {
   document.getElementById('tpInput').value = rec.tp || '';
   document.getElementById('slInput').value = rec.sl || '';
   setTradeDir(rec.action === 'Long' ? 'long' : 'short');
-  setTimeout(fetchQuote, 300);
+  setTimeout(() => { fetchQuote(); updateRiskCalc(); }, 300);
 }
 
 // ===== 多语言系统 =====
