@@ -705,8 +705,10 @@ async function buildEventTimeline(clickedItem, allItems) {
   if (!related.length) related.push(clickedItem);
 
   // 2. 取时间范围：最早事件前6H 到 现在
-  const minTs = Math.floor(new Date(related[0].pubDate).getTime() / 1000) - 6 * 3600;
-  const maxTs = Math.floor(now / 1000);
+  // 时间范围：最早事件前2H 到 最晚事件后2H
+  const eventTimestamps = related.map(i => Math.floor(new Date(i.pubDate).getTime() / 1000));
+  const minTs = Math.min(...eventTimestamps) - 2 * 3600;
+  const maxTs = Math.max(...eventTimestamps) + 2 * 3600;
 
   // 3. 拉 Binance K线（4H）
   let candles = [];
@@ -738,8 +740,14 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
   const CHART_H = H - CHART_TOP - 4;
 
   // 时间范围
-  const tMin = candles.length ? candles[0].t : (events[0] ? new Date(events[0].pubDate).getTime() - 6*3600*1000 : Date.now() - 24*3600*1000);
-  const tMax = candles.length ? candles[candles.length-1].t : Date.now();
+  // 时间范围：以所有事件为准，K线作为背景，两者取并集
+  const eventTimes = events.map(e => new Date(e.pubDate).getTime());
+  const eventMin = Math.min(...eventTimes) - 2 * 3600 * 1000; // 事件最早时间前2H
+  const eventMax = Math.max(...eventTimes) + 2 * 3600 * 1000; // 事件最晚时间后2H
+  const candleMin = candles.length ? candles[0].t : eventMin;
+  const candleMax = candles.length ? candles[candles.length-1].t : eventMax;
+  const tMin = Math.min(eventMin, candleMin);
+  const tMax = Math.max(eventMax, candleMax);
   const tRange = tMax - tMin || 1;
 
   function tx(tsMs) { return ((tsMs - tMin) / tRange) * (W - 20) + 10; }
