@@ -325,8 +325,8 @@
     </div>
     <!-- Lightweight Charts 容器 -->
     <div id="eventAxisChart" style="width:100%;height:200px;"></div>
-    <!-- 图例 -->
-    <div id="axisLegend" class="custom-scroll-x" style="display:flex;gap:6px;padding:8px 12px;border-top:1px solid #1e293b;overflow-x:auto;flex-wrap:nowrap;"></div>
+    <!-- 图例（隐藏，由 Event Chain 替代） -->
+    <div id="axisLegend" style="display:none;"></div>
     <!-- 事件卡片脉络 -->
     <div style="border-top:1px solid #1e293b;">
       <div style="padding:6px 12px 4px;display:flex;align-items:center;justify-content:space-between;">
@@ -935,14 +935,11 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
     while (usedTimes.has(t + offset)) { offset += intervalSec; }
     t = t + offset;
     usedTimes.add(t);
-    // 标题截短，适合K线标注
-    const shortTitle = m.item.title.length > 20 ? m.item.title.slice(0, 18) + '…' : m.item.title;
-    return {
-      time: t,
+          time: t,
       position: m.idx % 2 === 0 ? 'aboveBar' : 'belowBar',
       color: m.color,
       shape: m.isActive ? 'arrowDown' : 'circle',
-      text: `#${m.idx+1} ${m.histPrice ? fmtPrice(m.histPrice) + ' ' : ''}${shortTitle}`,
+      text: `${m.idx + 1}`,
       size: m.isActive ? 2 : 1,
     };
   });
