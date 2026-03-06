@@ -12,47 +12,55 @@ function httpsGet(url) {
   });
 }
 
-// 简单内存缓存
 const cache = new Map();
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
 
-  // ts: 时间戳（秒），symbol: BTC/ETH/SOL 等，limit: 最多几条
-  const { ts, symbol = 'BTC', limit = 5 } = req.query;
+  const { ts, symbol = 'BTC', limit = 4 } = req.query;
   if (!ts) return res.status(400).json({ error: 'ts required' });
 
   const tsNum = parseInt(ts);
-  const cacheKey = `${symbol}_${Math.floor(tsNum / 3600)}`; // 按小时缓存
+  const cacheKey = `${symbol}_${Math.floor(tsNum / 3600)}`;
   if (cache.has(cacheKey)) return res.json(cache.get(cacheKey));
 
   try {
-    // CryptoCompare: 拉取 before=ts+1h 的最近50条，过滤时间窗口 ±12H
-    const beforeTs = tsNum + 3600;
     const categories = symbol.toUpperCase();
-    const url = `https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=${categories}&before=${beforeTs}&limit=50`;
-    const data = await httpsGet(url);
-    const items = data.Data || [];
 
-    // 过滤：在 ts ±12小时内
-    const windowSec = 12 * 3600;
-    const nearby = items
-      .filter(n => Math.abs(n.published_on - tsNum) <= windowSec)
-      .slice(0, parseInt(limit))
-      .map(n => ({
+    // 并行拉两页：ts 之后1H 和 ts 之前，合并取最近的
+    const [r1, r2] = await Promise.allSettled([
+      httpsGet(`https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=${categories}&before=${tsNum + 3600}&limit=50`),
+      httpsGet(`https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=${categories}&before=${tsNum}&limit=50`),
+    ]);
+
+    const items = [
+      ...(r1.status === 'fulfilled' ? r1.value.Data || [] : []),
+      ...(r2.status === 'fulfilled' ? r2.value.Data || [] : []),
+    ];
+
+    // 去重 + 按时间差排序，不限窗口（总能找到最近的）
+    const seen = new Set();
+    const sorted = items
+      .filter(n => { if (seen.has(n.id)) return false; seen.add(n.id); return true; })
+      .map(n => ({ ...n, _diff: Math.abs(n.published_on - tsNum) }))
+      .sort((a, b) => a._diff - b._diff)
+      .slice(0, parseInt(limit));
+
+    const result = {
+      news: sorted.map(n => ({
         title: n.title,
         url: n.url,
         source: n.source,
         publishedAt: n.published_on,
-        body: (n.body || '').slice(0, 200),
-      }));
+        diffHours: Math.round(n._diff / 3600),
+      })),
+      ts: tsNum,
+      symbol,
+    };
 
-    const result = { news: nearby, ts: tsNum, symbol };
     cache.set(cacheKey, result);
-    // 缓存10分钟
     setTimeout(() => cache.delete(cacheKey), 10 * 60 * 1000);
-
     res.json(result);
   } catch(e) {
     res.status(500).json({ error: e.message, news: [] });

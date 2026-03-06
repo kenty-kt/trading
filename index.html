@@ -654,7 +654,7 @@ async function loadHistoricalEvents(symbol, newsTimestamp) {
                 transition:border-color .15s;"
               onmouseover="this.style.borderColor='#137fec44';this.style.color='#e2e8f0'"
               onmouseout="this.style.borderColor='#1e293b';this.style.color='#94a3b8'">
-              <span style="color:#475569;font-size:8px;">${n.source} · ${new Date(n.publishedAt*1000).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span><br>
+              <span style="color:#475569;font-size:8px;">${n.source} · ${new Date(n.publishedAt*1000).toLocaleDateString('en-US',{month:'short',day:'numeric'})}${n.diffHours > 24 ? ` <span style="color:#f59e0b;">(${Math.round(n.diffHours/24)}d away)</span>` : n.diffHours > 0 ? ` (${n.diffHours}h away)` : ''}</span><br>
               ${n.title}
             </a>`).join('')}
         </div>`
