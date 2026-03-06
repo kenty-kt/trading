@@ -729,39 +729,10 @@ async function buildEventTimeline(clickedItem, allItems) {
 function renderEventAxisCanvas(candles, events, activeItem, symbol) {
   const canvas = document.getElementById('eventAxisCanvas');
   if (!canvas) return;
-  canvas.width = canvas.offsetWidth || 600;
 
   const colors = ['#ef4444','#f59e0b','#3b82f6','#10b981','#8b5cf6','#ec4899','#14b8a6','#f97316','#a855f7','#06b6d4'];
 
-  // 布局分区（从上到下）：
-  // [CIRCLE_ZONE] 编号圆  0 ~ 26px
-  // [CHART_ZONE]  折线图  28 ~ 84px
-  // [PRICE_ZONE]  价格标签 86 ~ 110px
-  const CIRCLE_H = 26;
-  const CHART_TOP = 28;
-  const CHART_BOT = 84;
-  const PRICE_TOP = 90;
-  const H = 120;
-  canvas.height = H;
-
-  const W = canvas.width;
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, W, H);
-  const CHART_H = CHART_BOT - CHART_TOP;
-
-  // 时间范围
-  const eventTimes = events.map(e => new Date(e.pubDate).getTime());
-  const eventMin = Math.min(...eventTimes) - 2 * 3600 * 1000;
-  const eventMax = Math.max(...eventTimes) + 2 * 3600 * 1000;
-  const candleMin = candles.length ? candles[0].t : eventMin;
-  const candleMax = candles.length ? candles[candles.length-1].t : eventMax;
-  const tMin = Math.min(eventMin, candleMin);
-  const tMax = Math.max(eventMax, candleMax);
-  const tRange = tMax - tMin || 1;
-
-  function tx(tsMs) { return ((tsMs - tMin) / tRange) * (W - 32) + 16; }
-
-  // 价格最近插值
+  // 价格插值
   function getPriceAt(tsMs) {
     if (!candles.length) return null;
     let best = candles[0], bestDiff = Math.abs(candles[0].t - tsMs);
@@ -772,203 +743,191 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
     return best.c;
   }
 
-  // 价格范围
+  function fmtPrice(p) {
+    if (!p) return '';
+    if (p >= 1000) return '$' + Math.round(p).toLocaleString();
+    if (p >= 1)    return '$' + p.toFixed(2);
+    return '$' + p.toFixed(4);
+  }
+
+  // 时间范围
+  const eventTimes = events.map(e => new Date(e.pubDate).getTime());
+  const tMin = Math.min(...eventTimes) - 1.5 * 3600 * 1000;
+  const tMax = Math.max(...eventTimes) + 1.5 * 3600 * 1000;
+  const tRange = tMax - tMin || 1;
+
+  // 把 K 线收盘价归一化为 SVG y 坐标（0~100）
   const prices = candles.map(c => c.c);
-  if (!prices.length) { canvas.height = 0; return; }
-  const pMin = Math.min(...prices) * 0.999;
-  const pMax = Math.max(...prices) * 1.001;
+  const pMin = prices.length ? Math.min(...prices) * 0.999 : 0;
+  const pMax = prices.length ? Math.max(...prices) * 1.001 : 1;
   const pRange = pMax - pMin || 1;
-  function py(p) { return CHART_TOP + CHART_H - ((p - pMin) / pRange) * CHART_H; }
 
-  // === 折线 + 渐变 ===
-  const grad = ctx.createLinearGradient(0, CHART_TOP, 0, CHART_BOT);
-  grad.addColorStop(0, '#137fec1a');
-  grad.addColorStop(1, '#137fec00');
-  ctx.beginPath();
-  candles.forEach((c, i) => {
-    i === 0 ? ctx.moveTo(tx(c.t), py(c.c)) : ctx.lineTo(tx(c.t), py(c.c));
-  });
-  ctx.lineTo(tx(candles[candles.length-1].t), CHART_BOT);
-  ctx.lineTo(tx(candles[0].t), CHART_BOT);
-  ctx.closePath();
-  ctx.fillStyle = grad;
-  ctx.fill();
+  function pct(tsMs) { return ((tsMs - tMin) / tRange * 100).toFixed(3); }  // x%
+  function py(p)     { return (100 - (p - pMin) / pRange * 100).toFixed(3); }  // SVG y (0=top)
 
-  ctx.beginPath();
-  ctx.strokeStyle = '#137fec';
-  ctx.lineWidth = 1.5;
-  ctx.lineJoin = 'round';
-  candles.forEach((c, i) => {
-    i === 0 ? ctx.moveTo(tx(c.t), py(c.c)) : ctx.lineTo(tx(c.t), py(c.c));
-  });
-  ctx.stroke();
+  // 构建 SVG 折线点
+  let polyPoints = '';
+  if (candles.length >= 2) {
+    polyPoints = candles
+      .filter(c => c.t >= tMin && c.t <= tMax)
+      .map(c => `${pct(c.t)},${py(c.c)}`)
+      .join(' ');
+  }
 
-  // 分隔线
-  ctx.strokeStyle = '#1e293b80';
-  ctx.lineWidth = 1;
-  [[0, CIRCLE_H], [0, CHART_BOT + 2]].forEach(([x1, y]) => {
-    ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(W, y); ctx.stroke();
-  });
-
-  // === 事件标记 ===
-  const legendItems = [];
-
-  events.slice(0, 10).forEach((item, idx) => {
+  // 事件数据
+  const evItems = events.slice(0, 10).map((item, idx) => {
     const tsMs = new Date(item.pubDate).getTime();
-    const x = tx(tsMs);
+    const xPct = parseFloat(pct(tsMs));
+    const price = getPriceAt(tsMs);
+    const priceY = price ? parseFloat(py(price)) : 50;
     const color = colors[idx % colors.length];
     const isActive = item === activeItem;
-    const price = getPriceAt(tsMs);
-
-    legendItems.push({ idx, color, title: item.title, price });
-
-    // 垂直虚线：圆底 → 折线区底
-    ctx.save();
-    ctx.strokeStyle = color + (isActive ? 'aa' : '55');
-    ctx.lineWidth = isActive ? 1.5 : 1;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath();
-    ctx.moveTo(x, CIRCLE_H);
-    ctx.lineTo(x, CHART_BOT);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
-
-    // === CIRCLE_ZONE: 编号圆（固定在顶部中央）===
-    const cr = isActive ? 10 : 8;
-    const cy = CIRCLE_H / 2;
-    ctx.beginPath();
-    ctx.arc(x, cy, cr, 0, Math.PI * 2);
-    ctx.fillStyle = isActive ? color : color + '28';
-    ctx.fill();
-    if (isActive) {
-      ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
-    }
-    ctx.fillStyle = isActive ? '#fff' : color;
-    ctx.font = `bold ${isActive ? 9 : 8}px -apple-system,sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(String(idx + 1), x, cy);
-
-    // === CHART_ZONE: 折线上的高亮点 ===
-    if (price !== null) {
-      const dotY = py(price);
-      ctx.beginPath();
-      ctx.arc(x, dotY, isActive ? 4.5 : 3, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
-      if (isActive) {
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
-      }
-    }
-
-    // === PRICE_ZONE: 价格标签（固定在底部，完整显示）===
-    if (price !== null) {
-      // 完整价格：>=1000 显示整数带逗号，<1 显示4位小数
-      const priceStr = price >= 1000
-        ? '$' + Math.round(price).toLocaleString()
-        : price >= 1
-          ? '$' + price.toFixed(2)
-          : '$' + price.toFixed(4);
-
-      ctx.font = `bold 8px -apple-system,sans-serif`;
-      const tw = ctx.measureText(priceStr).width;
-      const tagW = tw + 8;
-      const tagH = 12;
-      const tagX = Math.max(4, Math.min(W - tagW - 4, x - tagW / 2));
-      const tagY = PRICE_TOP;
-
-      ctx.beginPath();
-      // 兼容写法代替 roundRect
-      const r3 = 3;
-      ctx.moveTo(tagX + r3, tagY);
-      ctx.lineTo(tagX + tagW - r3, tagY);
-      ctx.quadraticCurveTo(tagX + tagW, tagY, tagX + tagW, tagY + r3);
-      ctx.lineTo(tagX + tagW, tagY + tagH - r3);
-      ctx.quadraticCurveTo(tagX + tagW, tagY + tagH, tagX + tagW - r3, tagY + tagH);
-      ctx.lineTo(tagX + r3, tagY + tagH);
-      ctx.quadraticCurveTo(tagX, tagY + tagH, tagX, tagY + tagH - r3);
-      ctx.lineTo(tagX, tagY + r3);
-      ctx.quadraticCurveTo(tagX, tagY, tagX + r3, tagY);
-      ctx.closePath();
-      ctx.fillStyle = '#0d1520f0';
-      ctx.fill();
-      ctx.strokeStyle = color + 'cc';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      ctx.fillStyle = color;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(priceStr, tagX + tagW / 2, tagY + tagH / 2);
-
-      // 虚线连接：折线圆点 → 价格区上边
-      if (price !== null) {
-        const dotY = py(price);
-        ctx.strokeStyle = color + '33';
-        ctx.lineWidth = 0.8;
-        ctx.setLineDash([2, 3]);
-        ctx.beginPath();
-        ctx.moveTo(x, dotY + 4);
-        ctx.lineTo(x, PRICE_TOP - 1);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
-    }
+    return { item, idx, xPct, price, priceY, color, isActive };
   });
 
-  // === 图例 ===
-  const legendEl = document.getElementById('axisLegend');
-  legendEl.innerHTML = legendItems.map(l => {
-    const priceStr = l.price >= 1000
-      ? '$' + Math.round(l.price).toLocaleString()
-      : l.price
-        ? '$' + l.price.toFixed(4)
-        : '';
+  // 价格标签防重叠：相邻标签交替上下
+  const priceTagPositions = evItems.map((e, i) => i % 2 === 0 ? 'above' : 'below');
+
+  // 构建 SVG
+  const svgLines = evItems.map(e =>
+    `<line x1="${e.xPct}%" y1="0" x2="${e.xPct}%" y2="100%"
+      stroke="${e.color}" stroke-width="${e.isActive ? 1.5 : 1}"
+      stroke-dasharray="3,3" opacity="${e.isActive ? 0.8 : 0.5}"/>`
+  ).join('');
+
+  // 折线渐变填充 polygon
+  let fillPolygon = '';
+  if (candles.length >= 2) {
+    const pts = candles
+      .filter(c => c.t >= tMin && c.t <= tMax);
+    if (pts.length >= 2) {
+      const last = pts[pts.length - 1];
+      const first = pts[0];
+      const fillPts = pts.map(c => `${pct(c.t)}%,${py(c.c)}%`).join(' ') +
+        ` ${pct(last.t)}%,100% ${pct(first.t)}%,100%`;
+      fillPolygon = `<polygon points="${fillPts}" fill="url(#lineGrad)" opacity="0.3"/>`;
+    }
+  }
+
+  // 价格点 + 标签（纯 HTML 绝对定位，不在 SVG 里）
+  const priceHtml = evItems.map((e, i) => {
+    if (!e.price) return '';
+    const above = priceTagPositions[i] === 'above';
+    // 价格点圆
+    const dotTop = `calc(${e.priceY}% )`;
+    const dotLeft = `calc(${e.xPct}% )`;
+    // 标签
+    const tagTop = above
+      ? `calc(${e.priceY}% - 28px)`
+      : `calc(${e.priceY}% + 6px)`;
+
     return `
-    <div onclick="analyzeNews(window._timelineItems[${l.idx}])" style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:2px 6px;border-radius:4px;border:1px solid ${l.color}33;background:${l.color}0d;">
-      <span style="width:14px;height:14px;border-radius:50%;background:${l.color};display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:bold;color:#fff;flex-shrink:0;">${l.idx+1}</span>
-      <span style="font-size:9px;color:#94a3b8;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.title.slice(0,28)}</span>
-      ${priceStr ? `<span style="font-size:9px;font-weight:700;color:${l.color};">${priceStr}</span>` : ''}
+    <!-- dot -->
+    <div style="position:absolute;left:${e.xPct}%;top:${e.priceY}%;
+      transform:translate(-50%,-50%);
+      width:${e.isActive?9:6}px;height:${e.isActive?9:6}px;
+      border-radius:50%;background:${e.color};
+      ${e.isActive?`box-shadow:0 0 0 2px #fff4,0 0 6px ${e.color};`:''}
+      z-index:4;pointer-events:none;"></div>
+    <!-- price tag -->
+    <div style="position:absolute;left:${e.xPct}%;top:${e.priceY}%;
+      transform:translate(-50%,${above?'calc(-100% - 6px)':'8px'});
+      background:#0d1520;border:1px solid ${e.color}cc;
+      border-radius:3px;padding:1px 5px;
+      font-size:9px;font-weight:700;color:${e.color};
+      white-space:nowrap;z-index:5;pointer-events:none;
+      line-height:14px;">
+      ${fmtPrice(e.price)}
     </div>`;
   }).join('');
 
-  // === Tooltip ===
-  canvas.onmousemove = (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) * (W / rect.width);
-    const tip = document.getElementById('axisTooltip');
-    let hit = null, minDist = 18;
-    events.slice(0, 10).forEach((item, idx) => {
-      const x = tx(new Date(item.pubDate).getTime());
-      if (Math.abs(mx - x) < minDist) { minDist = Math.abs(mx - x); hit = { item, idx }; }
+  // 编号圆（绝对定位在顶部轨道）
+  const circleHtml = evItems.map(e => `
+    <div onclick="analyzeNews(window._timelineItems[${e.idx}])"
+      title="${e.item.title}"
+      style="position:absolute;left:${e.xPct}%;top:50%;
+        transform:translate(-50%,-50%);
+        width:${e.isActive?20:16}px;height:${e.isActive?20:16}px;
+        border-radius:50%;
+        background:${e.isActive ? e.color : e.color+'33'};
+        border:${e.isActive?`2px solid ${e.color}`:'1px solid '+e.color+'66'};
+        display:flex;align-items:center;justify-content:center;
+        font-size:${e.isActive?9:8}px;font-weight:700;
+        color:${e.isActive?'#fff':e.color};
+        cursor:pointer;z-index:6;
+        ${e.isActive?`box-shadow:0 0 8px ${e.color}66;`:''}">
+      ${e.idx+1}
+    </div>`).join('');
+
+  // 图例
+  const legendEl = document.getElementById('axisLegend');
+  legendEl.innerHTML = evItems.map(e => `
+    <div onclick="analyzeNews(window._timelineItems[${e.idx}])"
+      style="display:flex;align-items:center;gap:4px;cursor:pointer;
+        padding:2px 6px;border-radius:4px;
+        border:1px solid ${e.color}33;background:${e.color}0d;">
+      <span style="width:14px;height:14px;border-radius:50%;background:${e.color};
+        display:inline-flex;align-items:center;justify-content:center;
+        font-size:8px;font-weight:bold;color:#fff;flex-shrink:0;">${e.idx+1}</span>
+      <span style="font-size:9px;color:#94a3b8;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.item.title.slice(0,28)}</span>
+      <span style="font-size:9px;font-weight:700;color:${e.color};flex-shrink:0;">${fmtPrice(e.price)}</span>
+    </div>`).join('');
+
+  // 替换 canvas 为 HTML 结构
+  const wrapper = canvas.parentElement;
+  wrapper.innerHTML = `
+    <div id="axisTooltip" style="display:none;position:absolute;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:10px;color:#e2e8f0;pointer-events:none;white-space:nowrap;z-index:10;max-width:260px;white-space:normal;line-height:1.4;"></div>
+
+    <!-- 编号圆轨道 -->
+    <div style="position:relative;height:26px;border-bottom:1px solid #1e293b22;">
+      ${circleHtml}
+    </div>
+
+    <!-- SVG 折线区 + 价格点 -->
+    <div style="position:relative;height:72px;">
+      <svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;"
+        preserveAspectRatio="none" viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#137fec" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#137fec" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        ${fillPolygon}
+        ${polyPoints ? `<polyline points="${polyPoints}" fill="none" stroke="#137fec" stroke-width="1.5" stroke-linejoin="round"/>` : ''}
+        ${svgLines}
+      </svg>
+      ${priceHtml}
+    </div>`;
+
+  // tooltip 交互
+  const chartDiv = wrapper.querySelector('div:nth-child(2)');
+  if (chartDiv) {
+    chartDiv.addEventListener('mousemove', (e) => {
+      const rect = chartDiv.getBoundingClientRect();
+      const mx = (e.clientX - rect.left) / rect.width;
+      const tip = wrapper.querySelector('#axisTooltip');
+      if (!tip) return;
+      let hit = null, minDist = 0.03;
+      evItems.forEach(ev => {
+        const d = Math.abs(ev.xPct / 100 - mx);
+        if (d < minDist) { minDist = d; hit = ev; }
+      });
+      if (hit) {
+        const dateStr = new Date(hit.item.pubDate).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+        tip.style.display = 'block';
+        tip.style.left = Math.min(e.clientX - rect.left + 8, rect.width - 270) + 'px';
+        tip.style.top = '4px';
+        tip.innerHTML = `<span style="color:${hit.color};font-weight:700;">#${hit.idx+1}</span> ${dateStr} <span style="color:${hit.color};">${fmtPrice(hit.price)}</span><br/><span style="color:#cbd5e1;">${hit.item.title.slice(0,70)}</span>`;
+      } else {
+        tip.style.display = 'none';
+      }
     });
-    if (hit) {
-      const color = colors[hit.idx % colors.length];
-      const price = getPriceAt(new Date(hit.item.pubDate).getTime());
-      const priceStr = price >= 1000
-        ? '$' + Math.round(price).toLocaleString()
-        : price ? '$' + price.toFixed(4) : '';
-      const dateStr = new Date(hit.item.pubDate).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
-      tip.style.display = 'block';
-      tip.style.left = Math.min(mx + 8, W - 230) + 'px';
-      tip.style.top = '4px';
-      tip.innerHTML = `<span style="color:${color};font-weight:700;">#${hit.idx+1}</span> ${dateStr} <span style="color:${color};">${priceStr}</span><br/><span style="color:#cbd5e1;">${hit.item.title.slice(0,60)}${hit.item.title.length>60?'…':''}</span>`;
-    } else {
-      tip.style.display = 'none';
-    }
-  };
-  canvas.onmouseleave = () => { document.getElementById('axisTooltip').style.display = 'none'; };
-  canvas.onclick = (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) * (W / rect.width);
-    let hit = null, minDist = 18;
-    events.slice(0, 10).forEach((item, idx) => {
-      const x = tx(new Date(item.pubDate).getTime());
-      if (Math.abs(mx - x) < minDist) { minDist = Math.abs(mx - x); hit = { item, idx }; }
+    chartDiv.addEventListener('mouseleave', () => {
+      const tip = wrapper.querySelector('#axisTooltip');
+      if (tip) tip.style.display = 'none';
     });
-    if (hit) analyzeNews(hit.item);
-  };
+  }
 }
 
 
