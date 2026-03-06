@@ -298,7 +298,7 @@
   <button class="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-[#15202b] border border-slate-200 dark:border-slate-700 transition-colors rounded shadow-sm"><span class="material-symbols-outlined text-sm">bookmark</span></button>
 </div>
 </div>
-<div id="newsBody" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed border-l-2 border-primary pl-3 mt-2">
+<div id="newsBody" class="leading-relaxed border-l-2 border-primary pl-3 mt-2" style="font-size:14px;font-family:'Work Sans',sans-serif;color:#cbd5e1;">
   Click a news item on the left to view details.
 </div>
 </div>
@@ -348,7 +348,7 @@
   <span class="material-symbols-outlined text-sm">psychology</span> <span data-i18n="label.signal">Signal Interpretation</span>
   <span id="signalBadge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold"></span>
 </h4>
-<p id="signalText" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+<p id="signalText" class="leading-relaxed" style="font-size:14px;font-family:'Work Sans',sans-serif;color:#cbd5e1;">
   Click a news item on the left to get AI analysis.
 </p>
 </div>
@@ -1391,7 +1391,7 @@ async function analyzeNews(item) {
               </div>
             </div>
           </div>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400">${r.reasoning}</p>
+          <p style="font-size:14px;font-family:'Work Sans',sans-serif;color:#94a3b8;line-height:1.5;">${r.reasoning}</p>
           <button onclick='openTradeModal(${JSON.stringify({symbol:r.symbol,action:r.action,tp:r.tp,sl:r.sl,spotPrice:tokenData?.price})})' class="w-full bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-semibold py-2 rounded transition-colors flex items-center justify-center gap-1 border border-primary/20 hover:border-transparent mt-1">
             <span class="material-symbols-outlined text-[14px]">bolt</span> Execute Auto-Trade
           </button>
