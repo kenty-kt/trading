@@ -630,6 +630,18 @@ async function loadHistoricalEvents(symbol, newsTimestamp, newsTitle = '') {
     }
   }));
 
+  // 检查是否所有时段都无匹配新闻
+  const hasAnyNews = results.some(r => !r.error && r.newsItems && r.newsItems.length > 0);
+  if (!hasAnyNews) {
+    grid.innerHTML = `
+      <div class="col-span-2 text-center py-8">
+        <span class="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600 block mb-3">search_off</span>
+        <p class="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">No Similar Historical Events Found</p>
+        <p class="text-xs text-slate-400 dark:text-slate-500">No news matching "${newsTitle.slice(0, 60)}..." was found in historical periods</p>
+      </div>`;
+    return;
+  }
+
   grid.innerHTML = results.map((r, idx) => {
     if (r.error || !r.candles || !r.candles.length) return '';
     const change = parseFloat(r.change);
