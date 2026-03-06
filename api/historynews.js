@@ -17,7 +17,7 @@ const STOPWORDS = new Set(['the','a','an','is','are','was','were','be','been','b
   'and','or','but','not','this','that','it','its','he','she','they','we','you','i',
   'after','before','over','under','up','down','out','new','big','what','how','why',
   'bitcoin','btc','crypto','cryptocurrency','market','price','news','says','report',
-  'according','amid','amid','following','despite','amid']);
+  'according','amid','following','despite']);
 
 function extractKeywords(text) {
   return [...new Set(
@@ -54,29 +54,29 @@ module.exports = async (req, res) => {
   const categories = symbol.toUpperCase();
 
   try {
-    // 拉4页：ts前后各两页，覆盖更大时间范围
+    // 拉4页：只拉 ts 之前的新闻（避免拉到未来）
     const fetches = [
-      httpsGet(`https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=${categories}&before=${tsNum + 7200}&limit=50`),
       httpsGet(`https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=${categories}&before=${tsNum}&limit=50`),
       httpsGet(`https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=${categories}&before=${tsNum - 3600}&limit=50`),
       httpsGet(`https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=${categories}&before=${tsNum - 7200}&limit=50`),
+      httpsGet(`https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=${categories}&before=${tsNum - 14400}&limit=50`),
     ];
     const settled = await Promise.allSettled(fetches);
     const items = settled.flatMap(r => r.status === 'fulfilled' ? r.value.Data || [] : []);
 
-    // 去重
+    // 去重 + 过滤未来新闻
     const seen = new Set();
     const unique = items.filter(n => {
-      if (seen.has(n.id)) return false;
+      if (seen.has(n.id) || n.published_on > tsNum) return false;
       seen.add(n.id); return true;
     });
 
-    // 相似度过滤
+    // 相似度过滤：至少2个关键词匹配
     let filtered = [];
     if (queryWords.length > 0) {
       filtered = unique
         .map(n => ({ ...n, _score: similarityScore(queryWords, n.title) }))
-        .filter(n => n._score > 0)
+        .filter(n => n._score >= 2)  // 至少2个词匹配
         .sort((a, b) => b._score - a._score ||
           Math.abs(a.published_on - tsNum) - Math.abs(b.published_on - tsNum));
     }

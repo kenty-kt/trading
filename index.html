@@ -731,21 +731,28 @@ async function fetchHistSimilarity(newsTitle, newsBody, results, symbol) {
       period: r.label,
       date: new Date(r.from * 1000).toISOString().slice(0, 10),
       change7d: r.change,
-      headlines: (r.newsItems || []).map(n => n.title).slice(0, 3),
+      headlines: (r.newsItems || []).map(n => n.title).slice(0, 2),  // 只取2条，减少 token
     }));
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);  // 15秒超时
 
     const res = await fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title: newsTitle,
-        description: newsBody || newsTitle,
+        title: newsTitle.slice(0, 100),  // 截短标题
+        description: (newsBody || newsTitle).slice(0, 150),
         tokens: [{ symbol, price: 0, change24h: 0 }],
         mode: 'historical_similarity',
         historicalContext: newsContext,
         lang: currentLang,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) throw new Error('API error');
     const data = await res.json();
     if (!data.historicalAnalysis) return;
 
@@ -753,31 +760,40 @@ async function fetchHistSimilarity(newsTitle, newsBody, results, symbol) {
     data.historicalAnalysis.forEach(h => {
       const { idx, similarity, reason, factors, predictions } = h;
 
-      // 相似度条
+      // 相似度卡片（大号显示）
       const badge = document.getElementById(`simBadge_${idx}`);
       if (badge) {
         const pct = Math.round(similarity || 0);
         const barColor = pct >= 70 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#ef4444';
         badge.innerHTML = `
-          <div style="width:52px;height:6px;background:#1e293b;border-radius:3px;overflow:hidden;">
-            <div style="width:${pct}%;height:100%;background:${barColor};border-radius:3px;transition:width .6s;"></div>
-          </div>
-          <span style="font-size:10px;font-weight:700;color:${barColor};">${pct}%</span>
-          <span style="font-size:9px;color:#475569;">similar</span>`;
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;
+            background:#0d1520;border:1px solid ${barColor}33;border-radius:8px;min-width:80px;">
+            <span style="font-size:20px;font-weight:700;color:${barColor};">${pct}%</span>
+            <span style="font-size:8px;color:#475569;text-transform:uppercase;letter-spacing:.05em;">Similarity</span>
+          </div>`;
       }
 
-      // AI 因子 + 预测
+      // AI 因子 + 预测网格
       const aiEl = document.getElementById(`histAI_${idx}`);
       if (aiEl && (reason || predictions)) {
         aiEl.style.display = 'flex';
-        const predsHtml = (predictions || []).map(p =>
-          `<div style="display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:9px;color:#64748b;">${p.asset} T+7</span>
-            <span style="font-size:9px;font-weight:700;color:${(p.change||'').startsWith('-') ? '#ef4444' : '#10b981'};">${p.change}</span>
-          </div>`).join('');
+        const predsHtml = (predictions || []).length
+          ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:6px;">
+              ${predictions.map(p => {
+                const isPos = !(p.change||'').startsWith('-');
+                const color = isPos ? '#10b981' : '#ef4444';
+                return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;
+                  padding:8px 6px;background:#0d1520;border:1px solid ${color}22;border-radius:6px;">
+                  <span style="font-size:8px;color:#475569;text-transform:uppercase;">${p.asset}</span>
+                  <span style="font-size:13px;font-weight:700;color:${color};">${p.change}</span>
+                  <span style="font-size:7px;color:#334155;">T+7</span>
+                </div>`;
+              }).join('')}
+            </div>`
+          : '';
         aiEl.innerHTML = `
-          ${reason ? `<p style="font-size:9px;color:#94a3b8;line-height:1.4;">${reason}</p>` : ''}
-          ${predsHtml ? `<div style="display:flex;flex-direction:column;gap:3px;padding:6px;background:#0d1520;border-radius:6px;">${predsHtml}</div>` : ''}`;
+          ${reason ? `<p style="font-size:9px;color:#94a3b8;line-height:1.4;margin-bottom:6px;">${reason}</p>` : ''}
+          ${predsHtml}`;
       }
     });
   } catch(e) {
