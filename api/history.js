@@ -21,7 +21,7 @@ module.exports = async function handler(req, res) {
   const endMs = parseInt(to) * 1000;
 
   try {
-    const url = `https://data-api.binance.vision/api/v3/klines?symbol=${symbol}&interval=4h&startTime=${startMs}&endTime=${endMs}&limit=1000`;
+    const url = `https://data-api.binance.vision/api/v3/klines?symbol=${symbol}&interval=1h&startTime=${startMs}&endTime=${endMs}&limit=2000`;
     const data = await httpsGet(url);
 
     if (!Array.isArray(data)) {
