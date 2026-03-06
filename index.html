@@ -615,12 +615,18 @@ async function loadHistoricalEvents(symbol, newsTimestamp) {
   const results = await Promise.all(periods.map(async p => {
     const from = newsTs - p.offset;
     const to = from + windowSec;
+    const midTs = from + windowSec / 2; // 该时段中心时间
     try {
-      const r = await fetch(`/api/history?symbol=${binanceSymbol}&from=${from}&to=${to}`);
-      const d = await r.json();
-      return { ...p, ...d, from, to };
+      // 并行拉 K线 + 历史新闻
+      const [klineRes, newsRes] = await Promise.all([
+        fetch(`/api/history?symbol=${binanceSymbol}&from=${from}&to=${to}`),
+        fetch(`/api/historynews?ts=${midTs}&symbol=${symbol}&limit=4`).catch(() => ({ ok: false })),
+      ]);
+      const d = await klineRes.json();
+      const nd = newsRes.ok !== false ? await newsRes.json().catch(() => ({ news: [] })) : { news: [] };
+      return { ...p, ...d, from, to, newsItems: nd.news || [] };
     } catch(e) {
-      return { ...p, error: true };
+      return { ...p, error: true, newsItems: [] };
     }
   }));
 
@@ -635,6 +641,25 @@ async function loadHistoricalEvents(symbol, newsTimestamp) {
     const dateStr = new Date(r.from * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const canvasId = `hist_canvas_${idx}`;
 
+    // 历史新闻列表
+    const newsHtml = (r.newsItems || []).length
+      ? `<div style="border-top:1px solid #1e293b;padding-top:8px;display:flex;flex-direction:column;gap:4px;">
+          <div style="font-size:9px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">
+            📰 News at that time
+          </div>
+          ${r.newsItems.map(n => `
+            <a href="${n.url}" target="_blank" rel="noopener"
+              style="display:block;font-size:9px;color:#94a3b8;line-height:1.4;text-decoration:none;
+                padding:3px 6px;border-radius:4px;border:1px solid #1e293b;background:#0d1520;
+                transition:border-color .15s;"
+              onmouseover="this.style.borderColor='#137fec44';this.style.color='#e2e8f0'"
+              onmouseout="this.style.borderColor='#1e293b';this.style.color='#94a3b8'">
+              <span style="color:#475569;font-size:8px;">${n.source} · ${new Date(n.publishedAt*1000).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span><br>
+              ${n.title}
+            </a>`).join('')}
+        </div>`
+      : `<div style="font-size:9px;color:#334155;border-top:1px solid #1e293b;padding-top:6px;">No news found for this period</div>`;
+
     return `
     <div class="p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#101922] flex flex-col gap-3">
       <div class="flex justify-between items-start">
@@ -647,6 +672,7 @@ async function loadHistoricalEvents(symbol, newsTimestamp) {
         </span>
       </div>
       <canvas id="${canvasId}" height="48" style="width:100%;display:block;"></canvas>
+      ${newsHtml}
     </div>`;
   }).join('');
 
