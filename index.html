@@ -629,31 +629,84 @@ async function loadHistoricalEvents(symbol, newsTimestamp, newsTitle = '', newsB
     }
   }));
 
-  // 用 DeepSeek 计算相似度 + 预测（异步，先渲染骨架再填充）
-  renderHistCards(results, symbol, newsTitle);
+  // 无匹配新闻的时段过滤掉，只显示有相似新闻的卡片
+  const matchedResults = results.filter(r => !r.error && r.candles && r.candles.length && r.newsItems && r.newsItems.length > 0);
 
-  // 异步请求 AI 相似度分析
-  fetchHistSimilarity(newsTitle, newsBody, results, symbol);
+  if (matchedResults.length === 0) {
+    // 保底：显示一张假数据参考卡
+    renderHistCards([{
+      label: 'Reference Example',
+      from: new Date('2022-03-16').getTime() / 1000,
+      change: '-3.2',
+      newsItems: [{
+        title: 'Bitcoin drops as Fed signals aggressive rate hike path amid inflation surge',
+        url: '#',
+        source: 'CoinDesk',
+        publishedAt: new Date('2022-03-16').getTime() / 1000,
+      }],
+      _mock: true,
+      _mockSim: 74,
+      _mockPreds: [
+        { asset: 'DXY',     change: '+2.5%' },
+        { asset: 'USD/JPY', change: '+2.5%' },
+        { asset: 'EUR/USD', change: '-2.0%' },
+        { asset: 'SPY',     change: '-3.0%' },
+      ],
+    }], symbol, newsTitle);
+    return;
+  }
+
+  // 用 DeepSeek 计算相似度 + 预测（异步，先渲染骨架再填充）
+  renderHistCards(matchedResults, symbol, newsTitle);
+  fetchHistSimilarity(newsTitle, newsBody, matchedResults, symbol);
 }
 
 function renderHistCards(results, symbol, newsTitle) {
   const grid = document.getElementById('histEventsGrid');
-  const validResults = results.filter(r => !r.error && r.candles && r.candles.length);
+  // mock 数据直接用，真实数据过滤有效的
+  const validResults = results[0]?._mock ? results : results.filter(r => !r.error && r.candles && r.candles.length);
   if (!validResults.length) {
     grid.innerHTML = `<div class="col-span-2 text-center py-8">
       <span class="material-symbols-outlined text-4xl text-slate-600 block mb-3">search_off</span>
-      <p class="text-sm text-slate-400">No historical price data available</p></div>`;
+      <p class="text-sm text-slate-400">No historical data available</p></div>`;
     return;
   }
 
   grid.innerHTML = validResults.map((r, idx) => {
-    const change7d = parseFloat(r.change);
     const dateStr = new Date(r.from * 1000).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
     const mainNews = r.newsItems[0];
+    const isMock = r._mock;
+
+    // mock 数据直接填相似度
+    const simContent = isMock
+      ? `<div style="font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Similarity</div>
+         <div style="font-size:32px;font-weight:700;color:#f59e0b;line-height:1;">${r._mockSim}%</div>
+         <div style="font-size:8px;color:#64748b;margin-top:4px;">Best Match</div>`
+      : `<div style="font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Similarity</div>
+         <div style="font-size:28px;font-weight:700;color:#475569;line-height:1;">--</div>
+         <div style="font-size:8px;color:#334155;margin-top:2px;">Analyzing...</div>`;
+
+    // mock T+7 预测
+    const mockPredsHtml = isMock && r._mockPreds ? `
+      <div style="padding:10px 12px 8px;background:#101922;border:1px solid #1e293b;border-radius:8px;">
+        <div style="font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Nearby Indices T+7 <span style="color:#334155;">(example)</span></div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+          ${r._mockPreds.map(p => {
+            const isPos = !p.change.startsWith('-');
+            const color = isPos ? '#10b981' : '#ef4444';
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#0d1520;border-radius:6px;">
+              <span style="font-size:10px;color:#94a3b8;font-weight:600;">${p.asset}</span>
+              <span style="font-size:13px;font-weight:700;color:${color};">${p.change}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>` : '';
 
     return `
-    <div id="histCard_${idx}" style="background:#0d1520;border:1px solid #1e293b;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;">
-      <!-- 顶部：日期 + 相似度大卡片 -->
+    <div id="histCard_${idx}" style="background:#0d1520;border:1px solid ${isMock ? '#334155' : '#1e293b'};border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;
+      ${isMock ? 'opacity:0.75;' : ''}">
+      ${isMock ? `<div style="font-size:8px;color:#475569;text-align:right;margin-bottom:-8px;">⚠ Reference example only</div>` : ''}
+      <!-- 顶部：日期 + 相似度 -->
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
         <div style="flex:1;">
           <div style="font-size:10px;color:#475569;margin-bottom:2px;">Historical Case</div>
@@ -662,14 +715,11 @@ function renderHistCards(results, symbol, newsTitle) {
         </div>
         <div id="simBadge_${idx}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;
           min-width:90px;padding:12px;background:#101922;border:1px solid #1e293b;border-radius:10px;">
-          <div style="font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Similarity</div>
-          <div style="font-size:28px;font-weight:700;color:#475569;line-height:1;">--</div>
-          <div style="font-size:8px;color:#334155;margin-top:2px;">Analyzing...</div>
+          ${simContent}
         </div>
       </div>
-
-      <!-- 历史新闻标题（主要一条） -->
-      <div id="histNews_${idx}" style="padding:10px 12px;background:#101922;border:1px solid #1e293b;border-radius:8px;min-height:48px;">
+      <!-- 新闻标题 -->
+      <div style="padding:10px 12px;background:#101922;border:1px solid #1e293b;border-radius:8px;min-height:48px;">
         ${mainNews
           ? `<a href="${mainNews.url}" target="_blank" rel="noopener"
               style="display:block;font-size:11px;color:#94a3b8;line-height:1.5;text-decoration:none;"
@@ -677,15 +727,12 @@ function renderHistCards(results, symbol, newsTitle) {
               ${mainNews.title}
             </a>
             <div style="font-size:8px;color:#475569;margin-top:6px;">${mainNews.source} · ${new Date(mainNews.publishedAt*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>`
-          : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:9px;color:#334155;">No similar headlines found</div>`}
+          : `<div style="font-size:9px;color:#334155;">No similar headlines found</div>`}
       </div>
-
-      <!-- T+7 预测网格占位 -->
-      <div id="histAI_${idx}" style="display:none;"></div>
+      <!-- T+7 预测 -->
+      <div id="histAI_${idx}" style="${isMock ? 'display:block' : 'display:none'};">${mockPredsHtml}</div>
     </div>`;
   }).join('');
-
-  // 不再渲染 canvas，改为纯数据卡片
 }
 
 async function fetchHistSimilarity(newsTitle, newsBody, results, symbol) {
