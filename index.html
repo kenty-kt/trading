@@ -1297,76 +1297,137 @@ async function renderPortfolio(holdings, totalValue) {
   const grid = document.getElementById('portfolioGrid');
   const summary = document.getElementById('portfolioSummary');
 
+  // 包含稳定币在内全部显示
+  const allHoldings = holdings;
+  const nonStable = holdings.filter(h => !['USDC','USDT','BUSD','DAI'].includes(h.symbol));
+
   summary.classList.remove('hidden');
   document.getElementById('portfolioTotal').textContent = '$' + parseFloat(totalValue).toLocaleString(undefined, {maximumFractionDigits: 2});
-  document.getElementById('portfolioCount').textContent = holdings.length;
+  document.getElementById('portfolioCount').textContent = allHoldings.length;
 
-  grid.innerHTML = '<div class="text-center text-slate-400 text-xs py-4 animate-pulse">Loading Polymarket hedge suggestions...</div>';
+  // 默认选中第一个非稳定币
+  let selectedSymbol = nonStable[0]?.symbol || allHoldings[0]?.symbol;
 
-  // 获取 Polymarket 数据
-  const nonStable = holdings.filter(h => !['USDC','USDT','BUSD','DAI'].includes(h.symbol));
-  const symbolsStr = nonStable.map(h => h.symbol).join(',');
+  grid.innerHTML = '<div class="text-center text-slate-400 text-xs py-4 animate-pulse">Loading Polymarket data...</div>';
+
+  // 拉 Polymarket
   let polyData = {};
-  try {
-    const r = await fetch(`/api/polymarket?symbols=${symbolsStr}`);
-    const d = await r.json();
-    d.results?.forEach(r => { polyData[r.symbol] = r.markets; });
-  } catch(e) {}
+  if (nonStable.length) {
+    try {
+      const r = await fetch(`/api/polymarket?symbols=${nonStable.map(h=>h.symbol).join(',')}`);
+      const d = await r.json();
+      d.results?.forEach(r => { polyData[r.symbol] = r.markets; });
+    } catch(e) {}
+  }
 
-  grid.innerHTML = nonStable.map(h => {
-    const markets = polyData[h.symbol] || [];
-    const isUp = h.change24h >= 0;
+  function renderHedgePanel(symbol) {
+    const h = allHoldings.find(x => x.symbol === symbol);
+    if (!h) return '<div class="p-4 text-slate-400 text-xs">Select a position</div>';
+    const markets = polyData[symbol] || [];
+    const isUp = (h.change24h || 0) >= 0;
+    const hedgeSide = isUp ? 'No' : 'Yes';
 
     const marketsHtml = markets.length ? markets.map(m => {
-      const yesOutcome = m.outcomes?.find(o => o.name === 'Yes');
-      const noOutcome = m.outcomes?.find(o => o.name === 'No');
-      // 持多 → 建议买 NO（对冲下跌风险）；持空 → 建议买 YES
-      const hedgeSide = isUp ? 'No' : 'Yes';
-      const hedgeOutcome = isUp ? noOutcome : yesOutcome;
-      const prob = hedgeOutcome?.probability || 'N/A';
-
+      const yesO = m.outcomes?.find(o => o.name === 'Yes');
+      const noO  = m.outcomes?.find(o => o.name === 'No');
       return `
-      <div class="mt-2 p-2 rounded bg-white dark:bg-[#101922] border border-slate-200 dark:border-slate-700">
-        <div class="flex items-start justify-between gap-2 mb-1.5">
-          <p class="text-[10px] text-slate-600 dark:text-slate-300 leading-tight flex-1">${m.question}</p>
-          <span class="text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0 ${isUp ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}">Hedge: ${hedgeSide}</span>
+      <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-[#101922] border border-slate-200 dark:border-slate-700">
+        <div class="flex items-start justify-between gap-2 mb-2">
+          <p class="text-[11px] text-slate-700 dark:text-slate-200 leading-snug flex-1">${m.question}</p>
+          <span class="text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0 ${isUp?'bg-red-500/20 text-red-400':'bg-green-500/20 text-green-400'}">
+            Hedge: ${hedgeSide}
+          </span>
         </div>
         <div class="flex items-center justify-between">
-          <div class="flex gap-2 text-[10px]">
-            ${m.outcomes?.map(o => `<span class="${o.name==='Yes'?'text-green-400':'text-red-400'}">${o.name} ${o.probability}</span>`).join('<span class="text-slate-600">·</span>') || ''}
+          <div class="flex gap-3 text-[10px]">
+            <span class="text-green-400 font-medium">Yes ${yesO?.probability||'—'}</span>
+            <span class="text-red-400 font-medium">No ${noO?.probability||'—'}</span>
+            <span class="text-slate-500">$${(m.liquidity||0).toLocaleString()} liq</span>
           </div>
-          <div class="flex items-center gap-1.5">
-            <span class="text-[9px] text-slate-500">$${m.liquidity?.toLocaleString()} liq.</span>
-            <a href="${m.url}" target="_blank" class="px-2 py-0.5 text-[9px] font-bold bg-primary text-white rounded hover:bg-blue-600 transition-colors">Trade</a>
-          </div>
+          <a href="${m.url}" target="_blank" class="px-2.5 py-1 text-[10px] font-bold bg-primary text-white rounded hover:bg-blue-600 transition-colors">
+            Trade →
+          </a>
         </div>
       </div>`;
-    }).join('') : `<div class="mt-2 text-[10px] text-slate-500 italic">No active Polymarket events found for ${h.symbol}</div>`;
+    }).join('') : `
+      <div class="flex flex-col items-center justify-center py-6 text-slate-400">
+        <span class="material-symbols-outlined text-2xl mb-1 opacity-40">search_off</span>
+        <span class="text-xs">No active Polymarket events for ${symbol}</span>
+      </div>`;
 
     return `
-    <div class="p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#101922] flex flex-col gap-2">
-      <!-- 持仓头部 -->
-      <div class="flex items-center justify-between">
+    <div class="p-3 flex flex-col gap-2.5">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
         <div class="flex items-center gap-2">
           <span class="text-sm font-bold text-slate-900 dark:text-white">${h.symbol}</span>
-          <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${isUp ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}">
-            ${isUp ? '▲' : '▼'} ${Math.abs(h.change24h).toFixed(2)}%
+          <span class="text-xs text-slate-500">${h.name || ''}</span>
+          <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${isUp?'bg-green-500/15 text-green-400':'bg-red-500/15 text-red-400'}">
+            ${isUp?'▲':'▼'}${Math.abs(h.change24h||0).toFixed(2)}%
           </span>
         </div>
         <div class="text-right">
-          <div class="text-xs font-semibold text-slate-900 dark:text-white">${h.value > 0 ? '$' + h.value.toLocaleString(undefined,{maximumFractionDigits:2}) : '—'}</div>
-          <div class="text-[9px] text-slate-500">${h.balance.toLocaleString()} ${h.symbol} · ${h.pct}%</div>
+          <div class="text-xs font-semibold text-slate-900 dark:text-white">${h.value>0?'$'+h.value.toLocaleString(undefined,{maximumFractionDigits:2}):'—'}</div>
+          <div class="text-[9px] text-slate-500">${parseFloat(h.balance).toLocaleString()} ${h.symbol}</div>
         </div>
       </div>
-      <!-- Polymarket 对冲建议 -->
-      <div class="border-t border-slate-200 dark:border-slate-700 pt-2">
-        <span class="text-[9px] font-bold text-primary uppercase tracking-wider flex items-center gap-1 mb-1">
-          <span class="material-symbols-outlined text-[10px]">shield</span> Polymarket Hedge
-        </span>
-        ${marketsHtml}
+      <div class="text-[9px] font-bold text-primary uppercase tracking-wider flex items-center gap-1">
+        <span class="material-symbols-outlined text-[10px]">shield</span> Polymarket Hedge Suggestions
+      </div>
+      <div class="flex flex-col gap-2">${marketsHtml}</div>
+    </div>`;
+  }
+
+  function buildUI() {
+    const leftList = allHoldings.map(h => {
+      const isUp = (h.change24h||0) >= 0;
+      const isSelected = h.symbol === selectedSymbol;
+      return `
+      <div onclick="window._selectHolding('${h.symbol}')" class="flex items-center justify-between px-3 py-2.5 cursor-pointer transition-colors ${isSelected?'bg-primary/10 border-l-2 border-primary':'hover:bg-slate-50 dark:hover:bg-[#1a2634] border-l-2 border-transparent'}">
+        <div class="flex items-center gap-2">
+          ${h.image ? `<img src="${h.image}" class="w-5 h-5 rounded-full" onerror="this.style.display='none'"/>` : `<div class="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold text-primary">${h.symbol.slice(0,2)}</div>`}
+          <div>
+            <div class="text-xs font-bold text-slate-900 dark:text-white">${h.symbol}</div>
+            <div class="text-[9px] text-slate-500">${parseFloat(h.balance).toLocaleString(undefined,{maximumFractionDigits:4})}</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-[10px] font-semibold text-slate-800 dark:text-slate-200">${h.value>0?'$'+h.value.toLocaleString(undefined,{maximumFractionDigits:0}):'—'}</div>
+          <div class="text-[9px] font-medium ${isUp?'text-green-400':'text-red-400'}">${isUp?'▲':'▼'}${Math.abs(h.change24h||0).toFixed(2)}%</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    grid.innerHTML = `
+    <div style="display:flex;min-height:280px;">
+      <!-- 左：持仓列表 -->
+      <div style="width:160px;flex-shrink:0;border-right:1px solid #1e293b;overflow-y:auto;max-height:400px;">
+        <div class="px-3 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
+          Holdings (${allHoldings.length})
+        </div>
+        ${leftList}
+      </div>
+      <!-- 右：对冲建议 -->
+      <div id="hedgePanel" style="flex:1;overflow-y:auto;max-height:400px;">
+        ${renderHedgePanel(selectedSymbol)}
       </div>
     </div>`;
-  }).join('');
+
+    // 绑定点击
+    window._selectHolding = (symbol) => {
+      selectedSymbol = symbol;
+      document.getElementById('hedgePanel').innerHTML = renderHedgePanel(symbol);
+      // 更新左侧高亮
+      grid.querySelectorAll('[onclick]').forEach(el => {
+        const sym = el.getAttribute('onclick').match(/'(\w+)'/)?.[1];
+        if (sym) {
+          const active = sym === symbol;
+          el.className = `flex items-center justify-between px-3 py-2.5 cursor-pointer transition-colors ${active?'bg-primary/10 border-l-2 border-primary':'hover:bg-slate-50 dark:hover:bg-[#1a2634] border-l-2 border-transparent'}`;
+        }
+      });
+    };
+  }
+
+  buildUI();
 }
 
 function closeTradeModal(e) {
