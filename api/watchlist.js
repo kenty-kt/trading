@@ -1,16 +1,16 @@
 // api/watchlist.js — 拉取多资产报价（Yahoo Finance）
 const https = require('https');
 
-// 默认关注列表：宏观资产
+// 默认关注列表：宏观资产（含交易链接）
 const DEFAULT_SYMBOLS = [
-  { symbol: 'GC=F',    name: 'Gold',       type: 'commodity', emoji: '🥇' },
-  { symbol: 'CL=F',    name: 'Crude Oil',  type: 'commodity', emoji: '🛢️' },
-  { symbol: 'SI=F',    name: 'Silver',     type: 'commodity', emoji: '🪙' },
-  { symbol: 'SPY',     name: 'S&P 500',    type: 'equity',    emoji: '📈' },
-  { symbol: 'QQQ',     name: 'Nasdaq',     type: 'equity',    emoji: '💻' },
-  { symbol: 'DX-Y.NYB',name: 'USD Index',  type: 'fx',        emoji: '💵' },
-  { symbol: 'TNX',     name: '10Y Yield',  type: 'bond',      emoji: '🏦' },
-  { symbol: 'NVDA',    name: 'NVIDIA',     type: 'equity',    emoji: '🤖' },
+  { symbol: 'GC=F',     name: 'Gold',       type: 'commodity', emoji: '🥇', tradeUrl: 'https://www.tradingview.com/chart/?symbol=COMEX%3AGC1%21' },
+  { symbol: 'CL=F',     name: 'Crude Oil',  type: 'commodity', emoji: '🛢️', tradeUrl: 'https://www.tradingview.com/chart/?symbol=NYMEX%3ACL1%21' },
+  { symbol: 'SI=F',     name: 'Silver',     type: 'commodity', emoji: '🪙', tradeUrl: 'https://www.tradingview.com/chart/?symbol=COMEX%3ASI1%21' },
+  { symbol: 'SPY',      name: 'S&P 500',    type: 'equity',    emoji: '📈', tradeUrl: 'https://www.tradingview.com/chart/?symbol=AMEX%3ASPY' },
+  { symbol: 'QQQ',      name: 'Nasdaq',     type: 'equity',    emoji: '💻', tradeUrl: 'https://www.tradingview.com/chart/?symbol=NASDAQ%3AQQQ' },
+  { symbol: 'DX-Y.NYB', name: 'USD Index',  type: 'fx',        emoji: '💵', tradeUrl: 'https://www.tradingview.com/chart/?symbol=TVC%3ADXY' },
+  { symbol: 'TNX',      name: '10Y Yield',  type: 'bond',      emoji: '🏦', tradeUrl: 'https://www.tradingview.com/chart/?symbol=TVC%3AUS10Y' },
+  { symbol: 'NVDA',     name: 'NVIDIA',     type: 'equity',    emoji: '🤖', tradeUrl: 'https://www.tradingview.com/chart/?symbol=NASDAQ%3ANVDA' },
 ];
 
 let cache = null;

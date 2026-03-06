@@ -1110,7 +1110,6 @@ async function loadWatchlist(symbols = null) {
 function renderWatchlist(assets, highlighted = []) {
   const grid = document.getElementById('watchlistGrid');
   if (!grid) return;
-  // 动态列数：资产少时用更宽的列
   const cols = assets.length <= 2 ? assets.length : assets.length <= 4 ? 2 : 4;
   grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
   grid.innerHTML = assets.map(a => {
@@ -1118,26 +1117,41 @@ function renderWatchlist(assets, highlighted = []) {
     const color = isUp ? '#10b981' : '#ef4444';
     const spark = renderSparkline(a.spark, isUp);
     const reason = a._aiReason || '';
+    const tradeUrl = a.tradeUrl || `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(a.symbol)}`;
     return `
-    <div title="${reason}" style="background:#101922;border:1px solid #137fec55;
+    <div style="background:#101922;border:1px solid #137fec44;
       border-radius:8px;padding:8px 10px;position:relative;overflow:hidden;
-      box-shadow:0 0 8px #137fec22;cursor:default;">
-      <div style="position:absolute;top:4px;right:4px;font-size:7px;
-        background:#137fec22;color:#60a5fa;padding:1px 4px;border-radius:3px;font-weight:700;">AI ★</div>
-      <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
-        <span style="font-size:13px;">${a.emoji}</span>
-        <span style="font-size:9px;font-weight:700;color:#e2e8f0;">${a.name}</span>
+      box-shadow:0 0 6px #137fec18;">
+      <!-- 头部：emoji + 名称 + 外链 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span style="font-size:13px;">${a.emoji}</span>
+          <span style="font-size:9px;font-weight:700;color:#e2e8f0;">${a.name}</span>
+        </div>
+        <a href="${tradeUrl}" target="_blank" rel="noopener"
+          style="display:inline-flex;align-items:center;gap:2px;font-size:8px;
+            padding:1px 5px;border-radius:3px;background:#137fec22;color:#60a5fa;
+            text-decoration:none;border:1px solid #137fec33;white-space:nowrap;
+            transition:background .15s;"
+          onmouseover="this.style.background='#137fec44'"
+          onmouseout="this.style.background='#137fec22'">
+          Trade ↗
+        </a>
       </div>
-      <div style="font-size:12px;font-weight:700;color:#f1f5f9;margin-bottom:2px;">
+      <!-- 价格 -->
+      <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:3px;">
         ${a.price != null ? (a.currency === 'USD' ? '$' : '') + a.price.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}
       </div>
+      <!-- 涨跌 + 火花图 -->
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <span style="font-size:9px;font-weight:700;color:${color};">
           ${isUp ? '▲' : '▼'} ${Math.abs(a.change).toFixed(2)}%
         </span>
         ${spark}
       </div>
-      ${reason ? `<div style="font-size:8px;color:#60a5fa;margin-top:4px;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${reason}</div>` : ''}
+      <!-- AI 原因 -->
+      ${reason ? `<div style="font-size:8px;color:#60a5fa;margin-top:5px;line-height:1.35;
+        display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${reason}</div>` : ''}
     </div>`;
   }).join('');
 }
