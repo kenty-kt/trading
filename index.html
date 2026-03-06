@@ -309,32 +309,35 @@
     <div id="news_markers" style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden;"></div>
   </div>
 
-  <!-- 事件时间轴 -->
-  <div id="eventTimeline" style="display:none;background:#0d1520;border:1px solid #1e293b;border-radius:8px;overflow:hidden;">
-    <!-- 标题栏 -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #1e293b;background:#101922;">
+  <!-- 事件标注轴 (Canvas) -->
+  <div id="eventAxisWrap" style="display:none;background:#0d1520;border:1px solid #1e293b;border-radius:8px;overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#101922;border-bottom:1px solid #1e293b;">
       <div style="display:flex;align-items:center;gap:6px;">
-        <span class="material-symbols-outlined" style="font-size:14px;color:#137fec;">timeline</span>
-        <span id="timelineTitle" style="font-size:11px;font-weight:700;color:#fff;">Event Timeline</span>
-        <span id="timelineSymbol" style="font-size:10px;color:#64748b;"></span>
+        <span class="material-symbols-outlined" style="font-size:13px;color:#137fec;">bar_chart</span>
+        <span id="axisTitle" style="font-size:11px;font-weight:700;color:#fff;">Event Marker Axis</span>
       </div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <span id="timelineAffected" style="font-size:9px;color:#64748b;"></span>
-        <button onclick="document.getElementById('eventTimeline').style.display='none'" style="color:#475569;background:none;border:none;cursor:pointer;font-size:14px;line-height:1;">✕</button>
-      </div>
-    </div>
-    <!-- 横向滚动轨道 -->
-    <div id="timelineTrack" style="overflow-x:auto;padding:12px 16px 8px;scrollbar-width:thin;scrollbar-color:#2d3f55 transparent;" class="custom-scroll-x">
-      <div id="timelineNodes" style="display:flex;align-items:flex-start;gap:0;min-width:max-content;position:relative;padding-bottom:8px;">
-        <!-- 动态插入 -->
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="axisMeta" style="font-size:9px;color:#475569;"></span>
+        <button onclick="document.getElementById('eventAxisWrap').style.display='none'" style="color:#475569;background:none;border:none;cursor:pointer;font-size:14px;line-height:1;">✕</button>
       </div>
     </div>
-    <!-- 底部关注资产 -->
-    <div id="timelineAssets" style="display:flex;gap:6px;padding:6px 12px 8px;border-top:1px solid #1e293b;flex-wrap:wrap;"></div>
+    <!-- Canvas 价格迷你图 + 事件轴 -->
+    <div style="position:relative;">
+      <canvas id="eventAxisCanvas" style="width:100%;display:block;cursor:crosshair;" height="90"></canvas>
+      <!-- 悬浮 tooltip -->
+      <div id="axisTooltip" style="display:none;position:absolute;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:10px;color:#e2e8f0;pointer-events:none;white-space:nowrap;z-index:10;max-width:220px;white-space:normal;line-height:1.4;"></div>
+    </div>
+    <!-- 图例 -->
+    <div id="axisLegend" style="display:flex;flex-wrap:wrap;gap:6px;padding:6px 12px 8px;border-top:1px solid #1e293b;"></div>
   </div>
 
-  <!-- 标记图例 -->
-  <div id="news_legend" class="flex flex-wrap gap-2 mt-1"></div>
+  <!-- 旧时间轴占位（兼容） -->
+  <div id="eventTimeline" style="display:none;"></div>
+  <div id="timelineTitle" style="display:none;"></div>
+  <div id="timelineSymbol" style="display:none;"></div>
+  <div id="timelineNodes" style="display:none;"></div>
+  <div id="timelineAssets" style="display:none;"></div>
+  <div id="news_legend" style="display:none;"></div>
 </div>
 <div class="w-full p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-5 bg-slate-50 dark:bg-[#1a2634]/50 rounded-b-xl">
 <div class="w-full">
@@ -679,140 +682,209 @@ async function loadHistoricalEvents(symbol, newsTimestamp) {
 
 // ===== 事件时间轴 =====
 async function buildEventTimeline(clickedItem, allItems) {
-  const timeline = document.getElementById('eventTimeline');
-  timeline.style.display = 'block';
+  const wrap = document.getElementById('eventAxisWrap');
+  wrap.style.display = 'block';
 
   const mainToken = clickedItem.tokens?.[0];
   const symbol = mainToken?.symbol || 'BTC';
   const binanceSymbol = (TV_SYMBOL_MAP[symbol] || 'BINANCE:BTCUSDT').replace('BINANCE:', '');
 
-  document.getElementById('timelineTitle').textContent = 'Event Timeline · ' + symbol;
-  document.getElementById('timelineSymbol').textContent = '';
-  document.getElementById('timelineNodes').innerHTML = '<span style="color:#475569;font-size:11px;padding:8px;">Loading events...</span>';
+  document.getElementById('axisTitle').textContent = symbol + ' · Event Marker Axis';
+  document.getElementById('axisMeta').textContent = 'Loading...';
+  document.getElementById('axisLegend').innerHTML = '';
 
-  // 1. 聚合相关事件：同一 token，最近7天内的新闻
+  // 1. 聚合相关事件（7天内同 token）
   const now = Date.now();
-  const sevenDays = 7 * 24 * 3600 * 1000;
   const related = allItems
     .filter(item => {
       const hasToken = item.tokens?.some(t => t.symbol === symbol);
       const ts = new Date(item.pubDate).getTime();
-      return hasToken && (now - ts) < sevenDays;
+      return hasToken && (now - ts) < 7 * 24 * 3600 * 1000;
     })
     .sort((a, b) => new Date(a.pubDate) - new Date(b.pubDate));
+  if (!related.length) related.push(clickedItem);
 
-  if (!related.length) {
-    related.push(clickedItem);
-  }
+  // 2. 取时间范围：最早事件前6H 到 现在
+  const minTs = Math.floor(new Date(related[0].pubDate).getTime() / 1000) - 6 * 3600;
+  const maxTs = Math.floor(now / 1000);
 
-  // 2. 为每个事件取 Binance 历史价格（事件后4H的涨跌）
-  const eventsWithPrices = await Promise.all(related.map(async (item, idx) => {
-    const ts = Math.floor(new Date(item.pubDate).getTime() / 1000);
-    try {
-      const r = await fetch(`/api/history?symbol=${binanceSymbol}&from=${ts}&to=${ts + 4 * 3600}`);
-      const d = await r.json();
-      return { item, change4h: d.change || '0', candles: d.candles || [] };
-    } catch(e) {
-      return { item, change4h: '0', candles: [] };
-    }
-  }));
-
-  // 3. AI 分析整体事件脉络
-  let aiNarrative = '';
+  // 3. 拉 Binance K线（4H）
+  let candles = [];
   try {
-    const summaries = eventsWithPrices.map((e, i) =>
-      `[${i+1}] ${new Date(e.item.pubDate).toLocaleDateString()} - ${e.item.title} (${symbol} ${e.change4h}% in 4H)`
-    ).join('\n');
-
-    const r = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: `Event chain analysis for ${symbol}`,
-        description: `Analyze this sequence of events and their market impact on ${symbol}. Explain the event evolution and causal chain in 2-3 sentences:\n${summaries}`,
-        tokens: clickedItem.tokens || [],
-        lang: currentLang
-      })
-    });
+    const r = await fetch(`/api/history?symbol=${binanceSymbol}&from=${minTs}&to=${maxTs}`);
     const d = await r.json();
-    aiNarrative = d.interpretation || '';
+    candles = d.candles || [];
   } catch(e) {}
 
-  // 4. 渲染时间轴节点
-  const nodes = document.getElementById('timelineNodes');
+  // 4. 渲染 Canvas
+  window._timelineItems = related;
+  renderEventAxisCanvas(candles, related, clickedItem, symbol);
 
-  const nodesHtml = eventsWithPrices.map((e, idx) => {
-    const change = parseFloat(e.change4h);
-    const isPos = change >= 0;
-    const isActive = e.item === clickedItem;
-    const dateStr = new Date(e.item.pubDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const timeStr = new Date(e.item.pubDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-    const shortTitle = e.item.title.length > 40 ? e.item.title.slice(0, 38) + '…' : e.item.title;
-    const connector = idx < eventsWithPrices.length - 1
-      ? `<div style="width:40px;height:2px;background:linear-gradient(90deg,${isActive?'#137fec':'#1e293b'},#1e293b);margin-top:24px;flex-shrink:0;"></div>`
-      : '';
-
-    return `
-    <div style="display:flex;align-items:flex-start;">
-      <div onclick="analyzeNews(window._timelineItems[${idx}])" style="width:160px;flex-shrink:0;cursor:pointer;position:relative;">
-        <!-- 时间点圆 -->
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-          <div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;
-            background:${isActive?'#137fec':isPos?'#10b981':'#ef4444'};
-            box-shadow:${isActive?'0 0 0 3px #137fec33':'none'};"></div>
-          <span style="font-size:9px;color:#64748b;">${dateStr} ${timeStr}</span>
-        </div>
-        <!-- 事件卡片 -->
-        <div style="margin-left:16px;padding:8px;border-radius:6px;border:1px solid ${isActive?'#137fec40':'#1e293b'};background:${isActive?'#137fec0d':'#101922'};transition:border-color .2s;" 
-             onmouseenter="this.style.borderColor='#137fec40'" 
-             onmouseleave="this.style.borderColor='${isActive?'#137fec40':'#1e293b'}'">
-          <p style="font-size:10px;color:${isActive?'#e2e8f0':'#94a3b8'};line-height:1.4;margin-bottom:5px;">${shortTitle}</p>
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <span style="font-size:9px;font-weight:700;color:${isPos?'#10b981':'#ef4444'};">
-              ${isPos?'▲':'▼'} ${Math.abs(change).toFixed(2)}% 4H
-            </span>
-            ${isActive?`<span style="font-size:8px;padding:1px 5px;border-radius:3px;background:#137fec20;color:#137fec;font-weight:700;">CURRENT</span>`:''}
-          </div>
-        </div>
-      </div>
-      ${connector}
-    </div>`;
-  }).join('');
-
-  nodes.innerHTML = nodesHtml || '<span style="color:#475569;font-size:11px;">No related events found</span>';
-
-  // 保存引用供点击用
-  window._timelineItems = eventsWithPrices.map(e => e.item);
-
-  // 5. AI 叙事
-  document.getElementById('timelineSymbol').textContent = aiNarrative
-    ? '· ' + aiNarrative.slice(0, 80) + (aiNarrative.length > 80 ? '…' : '')
-    : '';
-
-  // 6. 关注资产标签
-  const allTokens = [...new Set(related.flatMap(i => i.tokens?.map(t => t.symbol) || []))];
-  const assetsEl = document.getElementById('timelineAssets');
-  assetsEl.innerHTML = allTokens.length
-    ? `<span style="font-size:9px;color:#475569;margin-right:4px;">Watch:</span>` +
-      allTokens.map(sym => {
-        const tok = related.flatMap(i => i.tokens||[]).find(t => t.symbol === sym);
-        const chg = tok?.change24h || 0;
-        return `<span style="padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;
-          background:${chg>=0?'#10b98115':'#ef444415'};color:${chg>=0?'#10b981':'#ef4444'};">
-          ${sym} ${chg>=0?'+':''}${chg.toFixed(2)}%
-        </span>`;
-      }).join('')
-    : '';
-
-  // 滚动到当前事件
-  setTimeout(() => {
-    const activeIdx = eventsWithPrices.findIndex(e => e.item === clickedItem);
-    const track = document.getElementById('timelineTrack');
-    if (activeIdx > 0 && track) {
-      track.scrollLeft = activeIdx * 200;
-    }
-  }, 100);
+  document.getElementById('axisMeta').textContent =
+    related.length + ' events · ' + symbol + ' 4H data';
 }
+
+function renderEventAxisCanvas(candles, events, activeItem, symbol) {
+  const canvas = document.getElementById('eventAxisCanvas');
+  if (!canvas) return;
+  canvas.width = canvas.offsetWidth || 600;
+  const W = canvas.width, H = canvas.height || 90;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const colors = ['#ef4444','#f59e0b','#3b82f6','#10b981','#8b5cf6','#ec4899','#14b8a6','#f97316','#a855f7','#06b6d4'];
+  const LABEL_H = 28; // 顶部事件标签区高度
+  const CHART_TOP = LABEL_H + 4;
+  const CHART_H = H - CHART_TOP - 4;
+
+  // 时间范围
+  const tMin = candles.length ? candles[0].t : (events[0] ? new Date(events[0].pubDate).getTime() - 6*3600*1000 : Date.now() - 24*3600*1000);
+  const tMax = candles.length ? candles[candles.length-1].t : Date.now();
+  const tRange = tMax - tMin || 1;
+
+  function tx(tsMs) { return ((tsMs - tMin) / tRange) * (W - 20) + 10; }
+
+  // 画价格折线
+  if (candles.length >= 2) {
+    const prices = candles.map(c => c.c);
+    const pMin = Math.min(...prices);
+    const pMax = Math.max(...prices);
+    const pRange = pMax - pMin || 1;
+    function py(p) { return CHART_TOP + CHART_H - ((p - pMin) / pRange) * CHART_H; }
+
+    // 渐变填充
+    const grad = ctx.createLinearGradient(0, CHART_TOP, 0, CHART_TOP + CHART_H);
+    grad.addColorStop(0, '#137fec22');
+    grad.addColorStop(1, '#137fec00');
+    ctx.beginPath();
+    candles.forEach((c, i) => {
+      const x = tx(c.t), y = py(c.c);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.lineTo(tx(candles[candles.length-1].t), CHART_TOP + CHART_H);
+    ctx.lineTo(tx(candles[0].t), CHART_TOP + CHART_H);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // 折线
+    ctx.beginPath();
+    ctx.strokeStyle = '#137fec';
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = 'round';
+    candles.forEach((c, i) => {
+      const x = tx(c.t), y = py(c.c);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  // 分隔线
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, LABEL_H);
+  ctx.lineTo(W, LABEL_H);
+  ctx.stroke();
+
+  // 画事件标记
+  const legendItems = [];
+  events.slice(0, 10).forEach((item, idx) => {
+    const tsMs = new Date(item.pubDate).getTime();
+    const x = tx(tsMs);
+    const color = colors[idx % colors.length];
+    const isActive = item === activeItem;
+    legendItems.push({ idx, color, title: item.title });
+
+    // 垂直虚线
+    ctx.save();
+    ctx.strokeStyle = color + (isActive ? 'cc' : '88');
+    ctx.lineWidth = isActive ? 2 : 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(x, LABEL_H);
+    ctx.lineTo(x, H);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // 顶部标签圆
+    const r = isActive ? 10 : 8;
+    ctx.beginPath();
+    ctx.arc(x, LABEL_H / 2, r, 0, Math.PI * 2);
+    ctx.fillStyle = isActive ? color : color + '33';
+    ctx.fill();
+    if (isActive) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // 数字
+    ctx.fillStyle = isActive ? '#fff' : color;
+    ctx.font = `bold ${isActive ? 9 : 8}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(idx + 1), x, LABEL_H / 2);
+
+    // 箭头（向下指向价格线区域）
+    ctx.strokeStyle = color + '66';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, LABEL_H + 2);
+    ctx.lineTo(x, LABEL_H + 8);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - 3, LABEL_H + 5);
+    ctx.lineTo(x, LABEL_H + 9);
+    ctx.lineTo(x + 3, LABEL_H + 5);
+    ctx.stroke();
+  });
+
+  // 图例
+  const legendEl = document.getElementById('axisLegend');
+  legendEl.innerHTML = legendItems.map(l => `
+    <div onclick="analyzeNews(window._timelineItems[${l.idx}])" style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:2px 6px;border-radius:4px;border:1px solid ${l.color}33;background:${l.color}11;">
+      <span style="width:14px;height:14px;border-radius:50%;background:${l.color};display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:bold;color:#fff;flex-shrink:0;">${l.idx+1}</span>
+      <span style="font-size:9px;color:#94a3b8;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.title.slice(0,30)}</span>
+    </div>`).join('');
+
+  // tooltip 交互
+  canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W / rect.width);
+    const tip = document.getElementById('axisTooltip');
+    let hit = null;
+    let minDist = 20;
+    events.slice(0, 10).forEach((item, idx) => {
+      const x = tx(new Date(item.pubDate).getTime());
+      const dist = Math.abs(mx - x);
+      if (dist < minDist) { minDist = dist; hit = { item, idx }; }
+    });
+    if (hit) {
+      const color = colors[hit.idx % colors.length];
+      const dateStr = new Date(hit.item.pubDate).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+      tip.style.display = 'block';
+      tip.style.left = Math.min(mx + 8, W - 230) + 'px';
+      tip.style.top = '4px';
+      tip.innerHTML = `<span style="color:${color};font-weight:700;">#${hit.idx+1}</span> ${dateStr}<br/><span style="color:#cbd5e1;">${hit.item.title.slice(0,60)}${hit.item.title.length>60?'…':''}</span>`;
+    } else {
+      tip.style.display = 'none';
+    }
+  };
+  canvas.onmouseleave = () => { document.getElementById('axisTooltip').style.display = 'none'; };
+  canvas.onclick = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W / rect.width);
+    let hit = null, minDist = 20;
+    events.slice(0, 10).forEach((item, idx) => {
+      const x = tx(new Date(item.pubDate).getTime());
+      if (Math.abs(mx - x) < minDist) { minDist = Math.abs(mx - x); hit = { item, idx }; }
+    });
+    if (hit) analyzeNews(hit.item);
+  };
+}
+
 
 function timeAgo(dateStr) {
   const diff = (Date.now() - new Date(dateStr)) / 1000;
