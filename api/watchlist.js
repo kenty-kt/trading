@@ -55,24 +55,34 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
 
-  if (cache && Date.now() - cacheTs < CACHE_TTL) {
+  // 支持 ?symbols=GC=F,SPY,QQQ 过滤
+  const requested = req.query.symbols
+    ? req.query.symbols.split(',').map(s => s.trim())
+    : null;
+
+  const targets = requested
+    ? DEFAULT_SYMBOLS.filter(d => requested.includes(d.symbol))
+    : DEFAULT_SYMBOLS;
+
+  // 简单缓存（全量）
+  if (!requested && cache && Date.now() - cacheTs < CACHE_TTL) {
     return res.json(cache);
   }
 
   const results = await Promise.all(
-    DEFAULT_SYMBOLS.map(async (item) => {
+    targets.map(async (item) => {
       const data = await fetchYahoo(item.symbol);
       return {
         ...item,
-        price:  data?.last   ?? null,
-        change: data?.chg    ?? 0,
-        spark:  data?.spark  ?? [],
+        price:    data?.last  ?? null,
+        change:   data?.chg   ?? 0,
+        spark:    data?.spark ?? [],
         currency: data?.currency ?? 'USD',
       };
     })
   );
 
-  cache = { assets: results, updatedAt: Date.now() };
-  cacheTs = Date.now();
-  res.json(cache);
+  const out = { assets: results, updatedAt: Date.now() };
+  if (!requested) { cache = out; cacheTs = Date.now(); }
+  res.json(out);
 };

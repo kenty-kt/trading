@@ -1088,35 +1088,42 @@ function timeAgo(dateStr) {
 // ===== 重点关注资产 =====
 let watchlistData = null;
 
-async function loadWatchlist() {
+async function loadWatchlist(symbols = null) {
+  const grid = document.getElementById('watchlistGrid');
+  if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#475569;font-size:10px;padding:8px;">Waiting for AI analysis...</div>';
+  if (!symbols) return; // 初始不加载，等 AI 选
+
   try {
-    const r = await fetch('/api/watchlist');
+    const url = '/api/watchlist?symbols=' + symbols.join(',');
+    const r = await fetch(url);
     const d = await r.json();
     watchlistData = d.assets || [];
     renderWatchlist(watchlistData);
     const el = document.getElementById('watchlistUpdated');
     if (el) el.textContent = 'Updated ' + new Date(d.updatedAt).toLocaleTimeString();
   } catch(e) {
-    document.getElementById('watchlistGrid').innerHTML =
-      '<div style="grid-column:1/-1;text-align:center;color:#ef4444;font-size:10px;padding:8px;">Failed to load assets</div>';
+    const grid = document.getElementById('watchlistGrid');
+    if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#ef4444;font-size:10px;padding:8px;">Failed to load assets</div>';
   }
 }
 
 function renderWatchlist(assets, highlighted = []) {
   const grid = document.getElementById('watchlistGrid');
   if (!grid) return;
+  // 动态列数：资产少时用更宽的列
+  const cols = assets.length <= 2 ? assets.length : assets.length <= 4 ? 2 : 4;
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
   grid.innerHTML = assets.map(a => {
     const isUp = a.change >= 0;
     const color = isUp ? '#10b981' : '#ef4444';
-    const isHighlighted = highlighted.includes(a.symbol) || highlighted.includes(a.name);
     const spark = renderSparkline(a.spark, isUp);
+    const reason = a._aiReason || '';
     return `
-    <div style="background:${isHighlighted ? '#137fec14' : '#101922'};
-      border:1px solid ${isHighlighted ? '#137fec55' : '#1e293b'};
+    <div title="${reason}" style="background:#101922;border:1px solid #137fec55;
       border-radius:8px;padding:8px 10px;position:relative;overflow:hidden;
-      ${isHighlighted ? 'box-shadow:0 0 8px #137fec22;' : ''}">
-      ${isHighlighted ? `<div style="position:absolute;top:4px;right:4px;font-size:7px;
-        background:#137fec22;color:#60a5fa;padding:1px 4px;border-radius:3px;font-weight:700;">AI ★</div>` : ''}
+      box-shadow:0 0 8px #137fec22;cursor:default;">
+      <div style="position:absolute;top:4px;right:4px;font-size:7px;
+        background:#137fec22;color:#60a5fa;padding:1px 4px;border-radius:3px;font-weight:700;">AI ★</div>
       <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
         <span style="font-size:13px;">${a.emoji}</span>
         <span style="font-size:9px;font-weight:700;color:#e2e8f0;">${a.name}</span>
@@ -1130,6 +1137,7 @@ function renderWatchlist(assets, highlighted = []) {
         </span>
         ${spark}
       </div>
+      ${reason ? `<div style="font-size:8px;color:#60a5fa;margin-top:4px;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${reason}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -1214,10 +1222,18 @@ async function analyzeNews(item) {
 
     signalText.textContent = data.interpretation || 'No interpretation available.';
 
-    // AI 联动：高亮相关宏观资产
-    if (watchlistData && data.relatedAssets) {
-      const highlighted = data.relatedAssets.map(a => a.name || a.symbol || a);
-      renderWatchlist(watchlistData, highlighted);
+    // AI 联动：只显示 AI 选中的宏观资产
+    if (data.relatedAssets && data.relatedAssets.length) {
+      const symbols = data.relatedAssets.map(a => a.symbol).filter(Boolean);
+      await loadWatchlist(symbols);
+      // 用 AI reason 更新每张卡片的提示
+      if (watchlistData) {
+        data.relatedAssets.forEach(ra => {
+          const asset = watchlistData.find(a => a.symbol === ra.symbol);
+          if (asset) asset._aiReason = ra.reason;
+        });
+        renderWatchlist(watchlistData, symbols.map(s => s));
+      }
       const aiNote = document.getElementById('watchlistAiNote');
       if (aiNote && data.assetNote) {
         aiNote.textContent = '🤖 ' + data.assetNote;
@@ -1429,7 +1445,7 @@ async function loadNews() {
 }
 
 loadNews();
-loadWatchlist();
+// watchlist 由 AI 分析后动态加载
 // 不自动刷新，手动点击新闻加载
 </script>
 <!-- 交易弹窗 -->
