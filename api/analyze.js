@@ -6,15 +6,66 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { title, description, tokens, lang = 'en' } = req.body;
+  const { title, description, tokens, lang = 'en', mode, historicalContext } = req.body;
+
+  const langInstruction = lang === 'zh' ? 'Respond in Simplified Chinese.' : 'Respond in English.';
+
+  // ===== 历史相似度模式 =====
+  if (mode === 'historical_similarity' && historicalContext) {
+    const histPrompt = `You are a financial historian and market analyst. ${langInstruction}
+
+Current news event: "${title}"
+${description ? `Context: ${description.slice(0, 200)}` : ''}
+
+Historical periods to analyze:
+${historicalContext.map(h => `
+Period ${h.idx}: ${h.period} (${h.date}), 7-day result: ${h.change7d}%
+Headlines then: ${h.headlines.length ? h.headlines.join(' | ') : 'none'}
+`).join('')}
+
+For each period, provide a JSON analysis:
+{
+  "historicalAnalysis": [
+    {
+      "idx": 0,
+      "similarity": 75,
+      "reason": "One sentence: why this historical period is similar/different",
+      "factors": ["factor1", "factor2"],
+      "predictions": [
+        { "asset": "BTC", "change": "+5%" },
+        { "asset": "Gold", "change": "-1%" }
+      ]
+    }
+  ]
+}
+
+similarity: 0-100 score based on market context, headline themes, and macro conditions.
+predictions: T+7 expected changes for 2-3 relevant assets based on historical outcome.
+Keep reason under 20 words. Be concise.`;
+
+    try {
+      const aiRes = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}` },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [{ role: 'user', content: histPrompt }],
+          response_format: { type: 'json_object' },
+          max_tokens: 800,
+          temperature: 0.3,
+        }),
+      });
+      const aiData = await aiRes.json();
+      const parsed = JSON.parse(aiData.choices?.[0]?.message?.content || '{}');
+      return res.json(parsed);
+    } catch(e) {
+      return res.status(500).json({ error: e.message });
+    }
+  }
 
   const tokenInfo = tokens && tokens.length
     ? tokens.map(t => `${t.symbol}: $${t.price?.toLocaleString()} (24h: ${t.change24h?.toFixed(2)}%)`).join(', ')
     : 'No specific tokens identified';
-
-  const langInstruction = lang === 'zh'
-    ? 'Respond in Simplified Chinese.'
-    : 'Respond in English.';
 
   const prompt = `You are a professional market analyst covering crypto AND macro assets. Analyze the following news and provide trading insights. ${langInstruction}
 

@@ -597,144 +597,192 @@ function initChart(symbol, newsItems) {
 }
 
 // 历史相似事件 - 取过去3个相同时间段的真实K线
-async function loadHistoricalEvents(symbol, newsTimestamp, newsTitle = '') {
+async function loadHistoricalEvents(symbol, newsTimestamp, newsTitle = '', newsBody = '') {
   const grid = document.getElementById('histEventsGrid');
-  grid.innerHTML = '<div class="col-span-2 text-center text-slate-400 text-xs py-4 animate-pulse">Loading historical data...</div>';
+  grid.innerHTML = '<div class="col-span-2 text-center text-slate-400 text-xs py-4 animate-pulse">Searching historical similar events...</div>';
 
   const binanceSymbol = (TV_SYMBOL_MAP[symbol] || 'BINANCE:BTCUSDT').replace('BINANCE:', '');
-  const windowSec = 24 * 3600; // 24小时窗口
+  const windowSec = 7 * 24 * 3600; // 7天价格窗口
   const newsTs = Math.floor(new Date(newsTimestamp).getTime() / 1000);
 
-  // 取过去3年同期数据
   const periods = [
-    { label: '1 Year Ago', offset: 365 * 24 * 3600 },
+    { label: '1 Year Ago',   offset: 365 * 24 * 3600 },
     { label: '6 Months Ago', offset: 180 * 24 * 3600 },
-    { label: '3 Months Ago', offset: 90 * 24 * 3600 },
+    { label: '3 Months Ago', offset: 90  * 24 * 3600 },
   ];
 
+  // 并行拉 K线 + 历史新闻
   const results = await Promise.all(periods.map(async p => {
     const from = newsTs - p.offset;
-    const to = from + windowSec;
-    const midTs = from + windowSec / 2; // 该时段中心时间
+    const to   = from + windowSec;
+    const midTs = from;
     try {
-      // 并行拉 K线 + 历史新闻
       const [klineRes, newsRes] = await Promise.all([
         fetch(`/api/history?symbol=${binanceSymbol}&from=${from}&to=${to}`),
-        fetch(`/api/historynews?ts=${midTs}&symbol=${symbol}&limit=8&q=${encodeURIComponent(newsTitle)}`).catch(() => ({ ok: false })),
+        fetch(`/api/historynews?ts=${midTs}&symbol=${symbol}&limit=3&q=${encodeURIComponent(newsTitle)}`).catch(() => null),
       ]);
-      const d = await klineRes.json();
-      const nd = newsRes.ok !== false ? await newsRes.json().catch(() => ({ news: [] })) : { news: [] };
-      return { ...p, ...d, from, to, newsItems: nd.news || [] };
+      const d  = await klineRes.json();
+      const nd = newsRes ? await newsRes.json().catch(() => ({ news: [] })) : { news: [] };
+      return { ...p, ...d, from, to, newsItems: nd.news || [], matched: nd.matched || 0 };
     } catch(e) {
-      return { ...p, error: true, newsItems: [] };
+      return { ...p, error: true, newsItems: [], matched: 0 };
     }
   }));
 
-  // 检查是否所有时段都无匹配新闻
-  const hasAnyNews = results.some(r => !r.error && r.newsItems && r.newsItems.length > 0);
-  if (!hasAnyNews) {
-    grid.innerHTML = `
-      <div class="col-span-2 text-center py-8">
-        <span class="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600 block mb-3">search_off</span>
-        <p class="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">No Similar Historical Events Found</p>
-        <p class="text-xs text-slate-400 dark:text-slate-500">No news matching "${newsTitle.slice(0, 60)}..." was found in historical periods</p>
-      </div>`;
+  // 用 DeepSeek 计算相似度 + 预测（异步，先渲染骨架再填充）
+  renderHistCards(results, symbol, newsTitle);
+
+  // 异步请求 AI 相似度分析
+  fetchHistSimilarity(newsTitle, newsBody, results, symbol);
+}
+
+function renderHistCards(results, symbol, newsTitle) {
+  const grid = document.getElementById('histEventsGrid');
+  const validResults = results.filter(r => !r.error && r.candles && r.candles.length);
+  if (!validResults.length) {
+    grid.innerHTML = `<div class="col-span-2 text-center py-8">
+      <span class="material-symbols-outlined text-4xl text-slate-600 block mb-3">search_off</span>
+      <p class="text-sm text-slate-400">No historical price data available</p></div>`;
     return;
   }
 
-  grid.innerHTML = results.map((r, idx) => {
-    if (r.error || !r.candles || !r.candles.length) return '';
-    const change = parseFloat(r.change);
-    const isPos = change >= 0;
-    const color = isPos ? '#10b981' : '#ef4444';
-    const badgeClass = isPos
-      ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400'
-      : 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400';
-    const dateStr = new Date(r.from * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  grid.innerHTML = validResults.map((r, idx) => {
+    const change7d = parseFloat(r.change);
+    const isPos = change7d >= 0;
+    const color  = isPos ? '#10b981' : '#ef4444';
+    const dateStr = new Date(r.from * 1000).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
     const canvasId = `hist_canvas_${idx}`;
 
-    // 历史新闻列表
-    const newsHtml = (r.newsItems || []).length
-      ? `<div style="border-top:1px solid #1e293b;padding-top:8px;display:flex;flex-direction:column;gap:4px;">
-          <div style="font-size:9px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">
-            📰 News at that time
-          </div>
-          ${r.newsItems.map(n => `
-            <a href="${n.url}" target="_blank" rel="noopener"
-              style="display:block;font-size:9px;color:#94a3b8;line-height:1.4;text-decoration:none;
-                padding:3px 6px;border-radius:4px;border:1px solid #1e293b;background:#0d1520;
-                transition:border-color .15s;"
-              onmouseover="this.style.borderColor='#137fec44';this.style.color='#e2e8f0'"
-              onmouseout="this.style.borderColor='#1e293b';this.style.color='#94a3b8'">
-              <span style="color:#475569;font-size:8px;">${n.source} · ${new Date(n.publishedAt*1000).toLocaleDateString('en-US',{month:'short',day:'numeric'})}${n.diffHours > 24 ? ` <span style="color:#f59e0b;">(${Math.round(n.diffHours/24)}d away)</span>` : n.diffHours > 0 ? ` (${n.diffHours}h away)` : ''}</span><br>
-              ${n.title}
-            </a>`).join('')}
-        </div>`
-      : `<div style="font-size:9px;color:#334155;border-top:1px solid #1e293b;padding-top:6px;">No similar news found for this period</div>`;
-
     return `
-    <div class="p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#101922] flex flex-col gap-3">
-      <div class="flex justify-between items-start">
-        <div class="flex flex-col gap-0.5">
-          <span class="font-bold text-slate-900 dark:text-white text-sm">${symbol} · ${r.label}</span>
-          <span class="text-xs text-slate-500">${dateStr}</span>
+    <div id="histCard_${idx}" style="background:#101922;border:1px solid #1e293b;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+      <!-- 头部：日期 + 相似度占位 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#e2e8f0;">${r.label}</div>
+          <div style="font-size:9px;color:#475569;margin-top:1px;">${dateStr}</div>
         </div>
-        <span class="px-2 py-0.5 rounded text-[10px] font-medium ${badgeClass}">
-          ${isPos ? '+' : ''}${change}%
-        </span>
+        <div id="simBadge_${idx}" style="display:flex;align-items:center;gap:6px;">
+          <div style="width:48px;height:6px;background:#1e293b;border-radius:3px;overflow:hidden;">
+            <div style="width:0%;height:100%;background:#475569;border-radius:3px;transition:width .6s;"></div>
+          </div>
+          <span style="font-size:9px;color:#475569;">Analyzing...</span>
+        </div>
       </div>
-      <canvas id="${canvasId}" height="48" style="width:100%;display:block;"></canvas>
-      ${newsHtml}
+
+      <!-- 历史新闻标题 -->
+      <div id="histNews_${idx}" style="min-height:20px;">
+        ${r.newsItems.length
+          ? r.newsItems.map(n => `<a href="${n.url}" target="_blank" rel="noopener"
+              style="display:block;font-size:9px;color:#64748b;line-height:1.4;text-decoration:none;
+                margin-bottom:3px;padding:2px 0;border-bottom:1px solid #1e293b;"
+              onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#64748b'">
+              <span style="color:#334155;">${n.source}</span> · ${n.title}
+            </a>`).join('')
+          : `<span style="font-size:9px;color:#334155;">No similar headlines found</span>`}
+      </div>
+
+      <!-- 价格走势迷你图 -->
+      <canvas id="${canvasId}" height="52" style="width:100%;display:block;border-radius:4px;"></canvas>
+
+      <!-- 7D 结果 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-top:6px;border-top:1px solid #1e293b;">
+        <span style="font-size:9px;color:#475569;">7D Result</span>
+        <span style="font-size:12px;font-weight:700;color:${color};">${isPos?'+':''}${change7d}%</span>
+      </div>
+
+      <!-- AI 因子分析占位 -->
+      <div id="histAI_${idx}" style="display:none;flex-direction:column;gap:4px;padding-top:6px;border-top:1px solid #1e293b;"></div>
     </div>`;
   }).join('');
 
   // 渲染 canvas 折线图
-  results.forEach((r, idx) => {
-    if (r.error || !r.candles || !r.candles.length) return;
+  validResults.forEach((r, idx) => {
     const canvas = document.getElementById(`hist_canvas_${idx}`);
     if (!canvas) return;
-    canvas.width = canvas.offsetWidth || 300;
+    canvas.width = canvas.offsetWidth || 280;
     const ctx = canvas.getContext('2d');
     const prices = r.candles.map(c => c.c);
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
+    const min = Math.min(...prices), max = Math.max(...prices);
     const range = max - min || 1;
-    const w = canvas.width;
-    const h = canvas.height;
-    const change = parseFloat(r.change);
-    const color = change >= 0 ? '#10b981' : '#ef4444';
-
-    ctx.clearRect(0, 0, w, h);
-
-    // 渐变填充
+    const w = canvas.width, h = canvas.height;
+    const color = parseFloat(r.change) >= 0 ? '#10b981' : '#ef4444';
     const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, color + '44');
-    grad.addColorStop(1, color + '00');
-
+    grad.addColorStop(0, color + '33'); grad.addColorStop(1, color + '00');
+    ctx.clearRect(0, 0, w, h);
     ctx.beginPath();
     prices.forEach((p, i) => {
       const x = (i / (prices.length - 1)) * w;
       const y = h - ((p - min) / range) * (h - 4) - 2;
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     });
-    ctx.lineTo(w, h);
-    ctx.lineTo(0, h);
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    // 折线
-    ctx.beginPath();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.lineJoin = 'round';
-    prices.forEach((p, i) => {
-      const x = (i / (prices.length - 1)) * w;
-      const y = h - ((p - min) / range) * (h - 4) - 2;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
-    ctx.stroke();
+    ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
   });
+}
+
+async function fetchHistSimilarity(newsTitle, newsBody, results, symbol) {
+  const validResults = results.filter(r => !r.error && r.candles && r.candles.length);
+  if (!validResults.length) return;
+
+  try {
+    const newsContext = validResults.map((r, idx) => ({
+      idx,
+      period: r.label,
+      date: new Date(r.from * 1000).toISOString().slice(0, 10),
+      change7d: r.change,
+      headlines: (r.newsItems || []).map(n => n.title).slice(0, 3),
+    }));
+
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: newsTitle,
+        description: newsBody || newsTitle,
+        tokens: [{ symbol, price: 0, change24h: 0 }],
+        mode: 'historical_similarity',
+        historicalContext: newsContext,
+        lang: currentLang,
+      }),
+    });
+    const data = await res.json();
+    if (!data.historicalAnalysis) return;
+
+    // 填充 AI 分析到每张卡片
+    data.historicalAnalysis.forEach(h => {
+      const { idx, similarity, reason, factors, predictions } = h;
+
+      // 相似度条
+      const badge = document.getElementById(`simBadge_${idx}`);
+      if (badge) {
+        const pct = Math.round(similarity || 0);
+        const barColor = pct >= 70 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#ef4444';
+        badge.innerHTML = `
+          <div style="width:52px;height:6px;background:#1e293b;border-radius:3px;overflow:hidden;">
+            <div style="width:${pct}%;height:100%;background:${barColor};border-radius:3px;transition:width .6s;"></div>
+          </div>
+          <span style="font-size:10px;font-weight:700;color:${barColor};">${pct}%</span>
+          <span style="font-size:9px;color:#475569;">similar</span>`;
+      }
+
+      // AI 因子 + 预测
+      const aiEl = document.getElementById(`histAI_${idx}`);
+      if (aiEl && (reason || predictions)) {
+        aiEl.style.display = 'flex';
+        const predsHtml = (predictions || []).map(p =>
+          `<div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:9px;color:#64748b;">${p.asset} T+7</span>
+            <span style="font-size:9px;font-weight:700;color:${(p.change||'').startsWith('-') ? '#ef4444' : '#10b981'};">${p.change}</span>
+          </div>`).join('');
+        aiEl.innerHTML = `
+          ${reason ? `<p style="font-size:9px;color:#94a3b8;line-height:1.4;">${reason}</p>` : ''}
+          ${predsHtml ? `<div style="display:flex;flex-direction:column;gap:3px;padding:6px;background:#0d1520;border-radius:6px;">${predsHtml}</div>` : ''}`;
+      }
+    });
+  } catch(e) {
+    console.warn('Historical similarity AI failed:', e);
+  }
 }
 
 // ===== 事件时间轴 =====
@@ -1239,7 +1287,7 @@ async function analyzeNews(item) {
   initChart(chartSymbol, allNewsItems);
 
   // 加载历史相似事件 & 事件时间轴
-  loadHistoricalEvents(chartSymbol, item.pubDate, item.title || '');
+  loadHistoricalEvents(chartSymbol, item.pubDate, item.title || '', item.description || '');
   buildEventTimeline(item, allNewsItems);
   const signalText = document.getElementById('signalText');
   const signalBadge = document.getElementById('signalBadge');
