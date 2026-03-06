@@ -870,12 +870,10 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
 
   candleSeries.setMarkers(markers);
 
-  // 自适应时间范围
+    // 默认：确保所有事件标记都在可见范围内
   const eventTimes = events.map(e => Math.floor(new Date(e.pubDate).getTime() / 1000));
-  // 默认：从最新开始，但确保所有事件标记都在可见范围内
-  const eventTimes = events.map(e => Math.floor(new Date(e.pubDate).getTime() / 1000));
-  const tFrom = Math.min(...eventTimes) - 3600 * 6;  // 最早事件前6H
-  const tTo = Math.floor(Date.now() / 1000) + 3600;   // 现在+1H留白
+  const tFrom = Math.min(...eventTimes) - 3600 * 6;
+  const tTo = Math.floor(Date.now() / 1000) + 3600;
   chart.timeScale().setVisibleRange({ from: tFrom, to: tTo });
 
   // 响应宽度变化
