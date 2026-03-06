@@ -705,8 +705,8 @@ async function buildEventTimeline(clickedItem, allItems) {
   // 2. 取时间范围：最早事件前6H 到 现在
   // 时间范围：最早事件前2H 到 最晚事件后2H
   const eventTimestamps = related.map(i => Math.floor(new Date(i.pubDate).getTime() / 1000));
-  const minTs = Math.min(...eventTimestamps) - 6 * 3600;  // 前6H
-  const maxTs = Math.max(...eventTimestamps) + 6 * 3600;  // 后6H
+  const minTs = Math.floor(Date.now() / 1000) - 180 * 24 * 3600; // 最近6个月
+  const maxTs = Math.floor(Date.now() / 1000);
 
   // 3. 拉 Binance K线（4H）
   let candles = [];
@@ -758,7 +758,7 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
   // 创建 Lightweight Chart
   const chart = LightweightCharts.createChart(container, {
     width: container.clientWidth,
-    height: 180,
+    height: 220,
     layout: {
       background: { color: '#0d1520' },
       textColor: '#64748b',
@@ -825,7 +825,7 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
   const markers = rawMarkers.map(m => {
     let t = m.time;
     // 找到一个没被占用的时间（向后错一根4H K线）
-    const intervalSec = 3600;
+    const intervalSec = 14400; // 4H，与K线周期一致
     let offset = 0;
     while (usedTimes.has(t + offset)) { offset += intervalSec; }
     t = t + offset;
@@ -844,9 +844,8 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
 
   // 自适应时间范围
   const eventTimes = events.map(e => Math.floor(new Date(e.pubDate).getTime() / 1000));
-  const tFrom = Math.min(...eventTimes) - 3600 * 3;
-  const tTo   = Math.max(...eventTimes) + 3600 * 3;
-  chart.timeScale().setVisibleRange({ from: tFrom, to: tTo });
+  // 默认显示全部6个月数据，事件标记平铺展开
+  chart.timeScale().fitContent();
 
   // 响应宽度变化
   new ResizeObserver(() => {
