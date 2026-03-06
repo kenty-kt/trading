@@ -820,12 +820,12 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
     return { time: tsSec, idx, item, color, isActive, histPrice };
   }).sort((a, b) => a.time - b.time);
 
-  // 去重：相同时间戳的标记各自错开一根 K 线（4H = 14400s）
+  // 去重：相同时间戳的标记各自错开一根 K 线（4H = 3600s）
   const usedTimes = new Set();
   const markers = rawMarkers.map(m => {
     let t = m.time;
     // 找到一个没被占用的时间（向后错一根4H K线）
-    const intervalSec = 14400;
+    const intervalSec = 3600;
     let offset = 0;
     while (usedTimes.has(t + offset)) { offset += intervalSec; }
     t = t + offset;
