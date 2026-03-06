@@ -323,7 +323,7 @@
     </div>
     <!-- Canvas 价格迷你图 + 事件轴 -->
     <div style="position:relative;">
-      <canvas id="eventAxisCanvas" style="width:100%;display:block;cursor:crosshair;" height="90"></canvas>
+      <canvas id="eventAxisCanvas" style="width:100%;display:block;cursor:crosshair;height:120px;" height="120"></canvas>
       <!-- 悬浮 tooltip -->
       <div id="axisTooltip" style="display:none;position:absolute;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:10px;color:#e2e8f0;pointer-events:none;white-space:nowrap;z-index:10;max-width:220px;white-space:normal;line-height:1.4;"></div>
     </div>
@@ -740,8 +740,8 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
   const CIRCLE_H = 26;
   const CHART_TOP = 28;
   const CHART_BOT = 84;
-  const PRICE_TOP = 88;
-  const H = 114;
+  const PRICE_TOP = 90;
+  const H = 120;
   canvas.height = H;
 
   const W = canvas.width;
@@ -879,11 +879,22 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
       const tagY = PRICE_TOP;
 
       ctx.beginPath();
-      ctx.roundRect(tagX, tagY, tagW, tagH, 3);
+      // 兼容写法代替 roundRect
+      const r3 = 3;
+      ctx.moveTo(tagX + r3, tagY);
+      ctx.lineTo(tagX + tagW - r3, tagY);
+      ctx.quadraticCurveTo(tagX + tagW, tagY, tagX + tagW, tagY + r3);
+      ctx.lineTo(tagX + tagW, tagY + tagH - r3);
+      ctx.quadraticCurveTo(tagX + tagW, tagY + tagH, tagX + tagW - r3, tagY + tagH);
+      ctx.lineTo(tagX + r3, tagY + tagH);
+      ctx.quadraticCurveTo(tagX, tagY + tagH, tagX, tagY + tagH - r3);
+      ctx.lineTo(tagX, tagY + r3);
+      ctx.quadraticCurveTo(tagX, tagY, tagX + r3, tagY);
+      ctx.closePath();
       ctx.fillStyle = '#0d1520f0';
       ctx.fill();
-      ctx.strokeStyle = color + '99';
-      ctx.lineWidth = 0.8;
+      ctx.strokeStyle = color + 'cc';
+      ctx.lineWidth = 1;
       ctx.stroke();
 
       ctx.fillStyle = color;
