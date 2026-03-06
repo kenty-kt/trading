@@ -3,14 +3,14 @@ const https = require('https');
 
 // 默认关注列表：宏观资产（含交易链接）
 const DEFAULT_SYMBOLS = [
-  { symbol: 'GC=F',     name: 'Gold',       type: 'commodity', emoji: '🥇', tradeUrl: 'https://www.tradingview.com/chart/?symbol=COMEX%3AGC1%21' },
-  { symbol: 'CL=F',     name: 'Crude Oil',  type: 'commodity', emoji: '🛢️', tradeUrl: 'https://www.tradingview.com/chart/?symbol=NYMEX%3ACL1%21' },
-  { symbol: 'SI=F',     name: 'Silver',     type: 'commodity', emoji: '🪙', tradeUrl: 'https://www.tradingview.com/chart/?symbol=COMEX%3ASI1%21' },
-  { symbol: 'SPY',      name: 'S&P 500',    type: 'equity',    emoji: '📈', tradeUrl: 'https://www.tradingview.com/chart/?symbol=AMEX%3ASPY' },
-  { symbol: 'QQQ',      name: 'Nasdaq',     type: 'equity',    emoji: '💻', tradeUrl: 'https://www.tradingview.com/chart/?symbol=NASDAQ%3AQQQ' },
-  { symbol: 'DX-Y.NYB', name: 'USD Index',  type: 'fx',        emoji: '💵', tradeUrl: 'https://www.tradingview.com/chart/?symbol=TVC%3ADXY' },
-  { symbol: 'TNX',      name: '10Y Yield',  type: 'bond',      emoji: '🏦', tradeUrl: 'https://www.tradingview.com/chart/?symbol=TVC%3AUS10Y' },
-  { symbol: 'NVDA',     name: 'NVIDIA',     type: 'equity',    emoji: '🤖', tradeUrl: 'https://www.tradingview.com/chart/?symbol=NASDAQ%3ANVDA' },
+  { symbol: 'GC=F',     name: 'Gold',       type: 'commodity', emoji: '🥇', tradeUrl: 'https://finance.yahoo.com/quote/GC=F/' },
+  { symbol: 'CL=F',     name: 'Crude Oil',  type: 'commodity', emoji: '🛢️', tradeUrl: 'https://finance.yahoo.com/quote/CL=F/' },
+  { symbol: 'SI=F',     name: 'Silver',     type: 'commodity', emoji: '🪙', tradeUrl: 'https://finance.yahoo.com/quote/SI=F/' },
+  { symbol: 'SPY',      name: 'S&P 500',    type: 'equity',    emoji: '📈', tradeUrl: 'https://finance.yahoo.com/quote/SPY/' },
+  { symbol: 'QQQ',      name: 'Nasdaq',     type: 'equity',    emoji: '💻', tradeUrl: 'https://finance.yahoo.com/quote/QQQ/' },
+  { symbol: 'DX-Y.NYB', name: 'USD Index',  type: 'fx',        emoji: '💵', tradeUrl: 'https://finance.yahoo.com/quote/DX-Y.NYB/' },
+  { symbol: 'TNX',      name: '10Y Yield',  type: 'bond',      emoji: '🏦', tradeUrl: 'https://finance.yahoo.com/quote/%5ETNX/' },
+  { symbol: 'NVDA',     name: 'NVIDIA',     type: 'equity',    emoji: '🤖', tradeUrl: 'https://finance.yahoo.com/quote/NVDA/' },
 ];
 
 let cache = null;

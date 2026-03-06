@@ -1117,7 +1117,7 @@ function renderWatchlist(assets, highlighted = []) {
     const color = isUp ? '#10b981' : '#ef4444';
     const spark = renderSparkline(a.spark, isUp);
     const reason = a._aiReason || '';
-    const tradeUrl = a.tradeUrl || `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(a.symbol)}`;
+    const tradeUrl = a.tradeUrl || `https://finance.yahoo.com/quote/${encodeURIComponent(a.symbol)}/`;
     return `
     <div style="background:#101922;border:1px solid #137fec44;
       border-radius:8px;padding:8px 10px;position:relative;overflow:hidden;
