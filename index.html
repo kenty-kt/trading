@@ -1570,10 +1570,23 @@ loadNews();
       <button onclick="document.getElementById('tradeModal').style.display='none'" style="color:#64748b;background:none;border:none;cursor:pointer;font-size:20px;">✕</button>
     </div>
 
-    <!-- 钱包状态 -->
-    <div id="walletStatus" style="padding:10px;background:#101922;border-radius:8px;font-size:12px;color:#94a3b8;display:flex;justify-content:space-between;align-items:center;">
-      <span id="walletAddr">Not connected</span>
-      <button id="connectWalletBtn" onclick="connectWallet()" style="padding:6px 12px;background:#137fec;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;">Connect Wallet</button>
+    <!-- 钱包状态 + Demo 模式 -->
+    <div id="walletStatus" style="padding:10px;background:#101922;border-radius:8px;font-size:12px;color:#94a3b8;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span id="walletAddr" style="font-family:monospace;">Not connected</span>
+        <div style="display:flex;gap:6px;">
+          <button id="demoModeBtn" onclick="enableDemoMode()" style="padding:5px 10px;background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44;border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;">🎮 Demo</button>
+          <button id="connectWalletBtn" onclick="connectWallet()" style="padding:5px 10px;background:#137fec;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:10px;font-weight:600;">Connect Wallet</button>
+        </div>
+      </div>
+      <!-- Demo/Real 余额显示 -->
+      <div id="walletBalanceBar" style="display:none;display:flex;gap:8px;flex-wrap:wrap;">
+        <span style="background:#1e293b;border-radius:4px;padding:3px 8px;font-size:11px;">
+          💵 USDC: <span id="balanceUSDC" style="color:#fff;font-weight:700;">0</span>
+        </span>
+        <span id="demoTag" style="display:none;background:#f59e0b22;border:1px solid #f59e0b44;border-radius:4px;padding:3px 8px;font-size:10px;color:#f59e0b;font-weight:700;">DEMO MODE</span>
+        <span id="demoPnL" style="display:none;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:700;"></span>
+      </div>
     </div>
 
     <!-- 交易方向 -->
@@ -1675,8 +1688,18 @@ loadNews();
     <!-- 确认按钮 -->
     <button id="executeBtn" onclick="executeSwap()" style="width:100%;padding:12px;background:#137fec;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;">
       <span class="material-symbols-outlined" style="font-size:16px;">bolt</span>
-      Confirm Trade on Jupiter
+      <span id="executeBtnLabel">Confirm Trade on Jupiter</span>
     </button>
+
+    <!-- Demo 成交记录 -->
+    <div id="demoOrdersWrap" style="display:none;">
+      <div style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
+        <span>📋 Demo Trade History</span>
+        <button onclick="clearDemoOrders()" style="font-size:9px;color:#475569;background:none;border:none;cursor:pointer;">Clear</button>
+      </div>
+      <div id="demoOrdersList" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
+    </div>
+
     <p style="font-size:10px;color:#475569;text-align:center;">Powered by Jupiter Aggregator · Solana</p>
   </div>
 </div>
@@ -1699,6 +1722,123 @@ let currentSlippage = 10; // bps
 let tradeDir = 'long';
 let currentTradeRec = null;
 
+// ===== Demo Trading =====
+const DEMO_INITIAL = 5000;
+let demoMode = false;
+let demoBalance = DEMO_INITIAL;
+let demoOrders = [];
+
+function enableDemoMode() {
+  demoMode = true;
+  demoBalance = DEMO_INITIAL;
+  window._walletUSDCBalance = DEMO_INITIAL;
+  demoOrders = [];
+  document.getElementById('walletAddr').textContent = 'Demo Wallet';
+  document.getElementById('demoModeBtn').style.background = '#f59e0b44';
+  document.getElementById('demoModeBtn').textContent = '🎮 Demo ON';
+  document.getElementById('connectWalletBtn').style.display = 'none';
+  document.getElementById('walletBalanceBar').style.display = 'flex';
+  document.getElementById('demoTag').style.display = 'inline-block';
+  document.getElementById('demoOrdersWrap').style.display = 'block';
+  document.getElementById('executeBtnLabel').textContent = '🎮 Execute Demo Trade';
+  document.getElementById('executeBtn').style.background = '#f59e0b';
+  updateDemoBalanceUI();
+  updateRiskCalc();
+}
+
+function updateDemoBalanceUI() {
+  document.getElementById('balanceUSDC').textContent = demoBalance.toFixed(2);
+  const totalPnL = demoOrders.reduce((s,o) => s + (o.pnl||0), 0);
+  const pnlEl = document.getElementById('demoPnL');
+  if (pnlEl && demoOrders.length) {
+    pnlEl.style.display = 'inline-block';
+    pnlEl.textContent = (totalPnL>=0?'+':'') + '$' + totalPnL.toFixed(2) + ' PnL';
+    pnlEl.style.background = totalPnL>=0 ? '#10b98122' : '#ef444422';
+    pnlEl.style.border = '1px solid ' + (totalPnL>=0 ? '#10b98144' : '#ef444444');
+    pnlEl.style.color = totalPnL>=0 ? '#10b981' : '#ef4444';
+  }
+}
+
+function executeDemoTrade() {
+  const amount = parseFloat(document.getElementById('tradeAmount').value) || 0;
+  const token = document.getElementById('tradeTokenLabel').textContent;
+  const entryPrice = parseFloat(document.getElementById('tradePrice').textContent.replace(/[^0-9.]/g,'')) || 0;
+  const dir = currentTradeDir || 'long';
+  const tp = parseFloat(document.getElementById('tpInput').value) || 0;
+  const sl = parseFloat(document.getElementById('slInput').value) || 0;
+  if (amount <= 0) { alert('Enter a valid amount'); return; }
+  if (amount > demoBalance) { alert('Insufficient demo balance ($' + demoBalance.toFixed(2) + ' USDC)'); return; }
+  if (entryPrice <= 0) { alert('No entry price'); return; }
+  demoBalance -= amount;
+  window._walletUSDCBalance = demoBalance;
+  const order = { id:Date.now(), token, dir, amount, entryPrice, qty:amount/entryPrice, tp, sl, status:'open', pnl:0, time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) };
+  demoOrders.unshift(order);
+  renderDemoOrders();
+  updateDemoBalanceUI();
+  updateRiskCalc();
+  setTimeout(() => simulatePnL(order.id), 5000);
+  const lbl = document.getElementById('executeBtnLabel');
+  const btn = document.getElementById('executeBtn');
+  lbl.textContent = '✓ Demo Order Placed!';
+  btn.style.background = '#10b981';
+  setTimeout(() => { lbl.textContent = '🎮 Execute Demo Trade'; btn.style.background = '#f59e0b'; }, 2500);
+}
+
+function simulatePnL(orderId) {
+  const order = demoOrders.find(o => o.id === orderId);
+  if (!order || order.status !== 'open') return;
+  const currentPrice = parseFloat(document.getElementById('tradePrice').textContent.replace(/[^0-9.]/g,'')) || order.entryPrice;
+  const priceDiff = currentPrice - order.entryPrice;
+  let finalPnL = order.dir === 'long' ? (priceDiff/order.entryPrice)*order.amount : -(priceDiff/order.entryPrice)*order.amount;
+  let closeReason = 'market';
+  if (order.tp && ((order.dir==='long'&&currentPrice>=order.tp)||(order.dir==='short'&&currentPrice<=order.tp))) {
+    finalPnL = Math.abs((order.tp-order.entryPrice)/order.entryPrice)*order.amount;
+    closeReason = 'TP ✓';
+  } else if (order.sl && ((order.dir==='long'&&currentPrice<=order.sl)||(order.dir==='short'&&currentPrice>=order.sl))) {
+    finalPnL = -Math.abs((order.sl-order.entryPrice)/order.entryPrice)*order.amount;
+    closeReason = 'SL ✗';
+  }
+  order.pnl = finalPnL;
+  order.closePrice = currentPrice;
+  order.closeReason = closeReason;
+  order.status = 'closed';
+  demoBalance += order.amount + finalPnL;
+  window._walletUSDCBalance = demoBalance;
+  renderDemoOrders();
+  updateDemoBalanceUI();
+}
+
+function closeDemoOrder(orderId) { simulatePnL(orderId); }
+function clearDemoOrders() { demoOrders = []; renderDemoOrders(); }
+
+function renderDemoOrders() {
+  const list = document.getElementById('demoOrdersList');
+  if (!list) return;
+  if (!demoOrders.length) { list.innerHTML = '<div style="font-size:10px;color:#334155;text-align:center;padding:8px;">No trades yet</div>'; return; }
+  list.innerHTML = demoOrders.map(o => {
+    const isOpen = o.status === 'open';
+    const pc = o.pnl >= 0 ? '#10b981' : '#ef4444';
+    const dc = o.dir === 'long' ? '#10b981' : '#ef4444';
+    return '<div style="background:#101922;border:1px solid #1e293b;border-radius:6px;padding:8px 10px;font-size:10px;">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">'
+      + '<div style="display:flex;gap:6px;align-items:center;">'
+      + '<span style="font-weight:700;color:' + dc + ';">' + o.dir.toUpperCase() + '</span>'
+      + '<span style="color:#e2e8f0;font-weight:600;">' + o.token + '</span>'
+      + '<span style="color:#475569;">$' + o.amount.toFixed(2) + '</span></div>'
+      + '<div style="display:flex;gap:6px;align-items:center;">'
+      + (isOpen
+        ? '<span style="color:#f59e0b;font-size:9px;">● OPEN</span><button onclick="closeDemoOrder(' + o.id + ')" style="font-size:9px;padding:2px 6px;background:#ef444422;color:#ef4444;border:1px solid #ef444444;border-radius:3px;cursor:pointer;">Close</button>'
+        : '<span style="font-weight:700;color:' + pc + ';">' + (o.pnl>=0?'+':'') + '$' + o.pnl.toFixed(2) + '</span><span style="color:#334155;font-size:9px;">' + o.closeReason + '</span>'
+      ) + '</div></div>'
+      + '<div style="display:flex;gap:8px;color:#475569;font-size:9px;">'
+      + '<span>Entry $' + o.entryPrice.toLocaleString() + '</span>'
+      + (o.tp ? '<span>TP $' + o.tp + '</span>' : '')
+      + (o.sl ? '<span>SL $' + o.sl + '</span>' : '')
+      + (o.closePrice ? '<span>→ $' + o.closePrice.toLocaleString() + '</span>' : '')
+      + '<span>' + o.time + '</span></div></div>';
+  }).join('');
+}
+
 async function connectWallet() {
   if (window.solana && window.solana.isPhantom) {
     try {
@@ -1708,6 +1848,7 @@ async function connectWallet() {
       document.getElementById('walletAddr').textContent = short;
       document.getElementById('connectWalletBtn').textContent = 'Connected ✓';
       document.getElementById('connectWalletBtn').style.background = '#10b981';
+      document.getElementById('walletBalanceBar').style.display = 'flex';
     } catch(e) {
       alert('Connection rejected');
     }
@@ -1859,6 +2000,9 @@ async function fetchQuote() {
 }
 
 async function executeSwap() {
+  // Demo 模式直接模拟成交
+  if (demoMode) { executeDemoTrade(); return; }
+
   if (!walletPublicKey) {
     await connectWallet();
     if (!walletPublicKey) return;
