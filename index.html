@@ -809,24 +809,61 @@ async function renderPage(page) {
   const pageItems = allNewsItems.slice(start, end);
   const totalPages = Math.ceil(allNewsItems.length / PAGE_SIZE);
 
-  // 中文模式下翻译标题和描述
+  // 中文模式翻译，失败不影响渲染
   let titles = pageItems.map(i => i.title);
   let descs = pageItems.map(i => i.description);
   if (currentLang === 'zh') {
-    const all = await translateToZh([...titles, ...descs]);
-    titles = all.slice(0, pageItems.length);
-    descs = all.slice(pageItems.length);
+    try {
+      const all = await translateToZh([...titles, ...descs]);
+      titles = all.slice(0, pageItems.length);
+      descs = all.slice(pageItems.length);
+    } catch(e) { /* 翻译失败保持英文 */ }
   }
 
-  const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'];
+  // impact 分级：根据 token 涨跌幅判断
+  function getImpact(item) {
+    if (!item.tokens || !item.tokens.length) return { label: 'Market', cls: 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300' };
+    const maxChange = Math.max(...item.tokens.map(t => Math.abs(t.change24h || 0)));
+    if (maxChange >= 5) return { label: 'High Impact', cls: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' };
+    if (maxChange >= 2) return { label: 'Medium Impact', cls: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400' };
+    return { label: 'Low Impact', cls: 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' };
+  }
+
   const newsHtml = pageItems.map((item, i) => {
     const globalIdx = start + i;
-    const color = colors[globalIdx % colors.length];
+    const isActive = i === 0 && page === 1;
+    const impact = getImpact(item);
+
+    // 主要 token 卡片（最多显示1个，内嵌在卡片里）
+    const mainToken = item.tokens && item.tokens[0];
+    const tokenCard = mainToken ? `
+      <div class="mt-1 bg-slate-100 dark:bg-[#101922] rounded p-2 flex flex-col gap-2 border border-slate-200 dark:border-slate-800">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <img src="${mainToken.image}" class="w-4 h-4 rounded-full" onerror="this.style.display='none'"/>
+            <span class="text-xs font-bold text-slate-900 dark:text-white">${mainToken.symbol}</span>
+            <span class="text-xs text-slate-500 font-medium">$${mainToken.price < 1 ? mainToken.price.toFixed(4) : mainToken.price.toLocaleString()}</span>
+          </div>
+          <span class="text-[10px] font-bold ${mainToken.change24h >= 0 ? 'text-green-400' : 'text-red-400'}">${mainToken.change24h >= 0 ? '▲' : '▼'}${Math.abs(mainToken.change24h).toFixed(2)}%</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="flex gap-1">
+            <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">10%</button>
+            <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">25%</button>
+            <button class="px-1.5 py-1 text-[9px] font-medium rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">50%</button>
+          </div>
+          <div class="flex gap-1 flex-1">
+            <button onclick="event.stopPropagation();openTradeModal({symbol:'${mainToken.symbol}',action:'Long',tp:'',sl:'',spotPrice:${mainToken.price}})" class="flex-1 py-1 text-[10px] font-bold rounded bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 border border-green-500/20">Long</button>
+            <button onclick="event.stopPropagation();openTradeModal({symbol:'${mainToken.symbol}',action:'Short',tp:'',sl:'',spotPrice:${mainToken.price}})" class="flex-1 py-1 text-[10px] font-bold rounded bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 border border-red-500/20">Short</button>
+          </div>
+        </div>
+      </div>` : '';
+
     return `
-    <div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 ${i===0 && page===1?'bg-slate-50 dark:bg-slate-800/50 border-l-2 border-l-primary':'bg-white dark:bg-[#15202b] border-l-2 border-l-transparent'} hover:bg-slate-100 dark:hover:bg-[#1a2634] transition-colors flex flex-col gap-2.5 cursor-pointer" onclick="analyzeNews(allNewsItems[${globalIdx}])">
+    <div class="text-left p-4 border-b border-slate-200 dark:border-slate-800 ${isActive ? 'bg-slate-50 dark:bg-slate-800/50 border-l-2 border-l-primary' : 'bg-white dark:bg-[#15202b] border-l-2 border-l-transparent'} hover:bg-slate-50 dark:hover:bg-[#1a2634] transition-colors flex flex-col gap-2.5 cursor-pointer" onclick="analyzeNews(allNewsItems[${globalIdx}])">
       <div class="flex justify-between items-center w-full">
         <div class="flex gap-2 items-center">
-          <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 uppercase tracking-wide">${item.tag}</span>
+          <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${impact.cls} uppercase tracking-wide">${impact.label}</span>
         </div>
         <a href="${item.link}" target="_blank" onclick="event.stopPropagation()" class="text-slate-400 hover:text-primary">
           <span class="material-symbols-outlined text-[14px]">open_in_new</span>
@@ -834,7 +871,7 @@ async function renderPage(page) {
       </div>
       <h4 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">${titles[i]}</h4>
       <p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">${descs[i]}</p>
-      ${renderTokens(item.tokens)}
+      ${tokenCard}
       <div class="flex items-center gap-2 mt-1">
         <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">${item.source}</span>
         <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
@@ -842,20 +879,15 @@ async function renderPage(page) {
           <span class="material-symbols-outlined text-[12px]">schedule</span> ${timeAgo(item.pubDate)}
         </span>
       </div>
-    </div>
-  `}).join('');
+    </div>`;
+  }).join('');
 
   const paginationHtml = totalPages > 1 ? `
     <div class="flex items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a2634]">
-      <button onclick="changePage(${page - 1})" ${page <= 1 ? 'disabled' : ''} class="px-3 py-1.5 text-xs font-medium rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-40 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
-        ← Prev
-      </button>
+      <button onclick="changePage(${page - 1})" ${page <= 1 ? 'disabled' : ''} class="px-3 py-1.5 text-xs font-medium rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-40 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">← Prev</button>
       <span class="text-xs text-slate-500 dark:text-slate-400">${page} / ${totalPages}</span>
-      <button onclick="changePage(${page + 1})" ${page >= totalPages ? 'disabled' : ''} class="px-3 py-1.5 text-xs font-medium rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-40 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
-        Next →
-      </button>
-    </div>
-  ` : '';
+      <button onclick="changePage(${page + 1})" ${page >= totalPages ? 'disabled' : ''} class="px-3 py-1.5 text-xs font-medium rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-40 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Next →</button>
+    </div>` : '';
 
   feed.innerHTML = newsHtml + paginationHtml;
 }
