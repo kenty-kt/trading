@@ -900,7 +900,7 @@ async function changePage(page) {
   document.getElementById('newsFeed').scrollTop = 0;
 }
 
-function renderNews(items) {
+async function renderNews(items) {
   const feed = document.getElementById('newsFeed');
   if (!items.length) {
     feed.innerHTML = '<div class="p-6 text-center text-slate-400 text-sm">No news available</div>';
