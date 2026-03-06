@@ -16,11 +16,13 @@ module.exports = async function handler(req, res) {
     ? 'Respond in Simplified Chinese.'
     : 'Respond in English.';
 
-  const prompt = `You are a professional crypto market analyst. Analyze the following news and provide trading insights. ${langInstruction}
+  const prompt = `You are a professional market analyst covering crypto AND macro assets. Analyze the following news and provide trading insights. ${langInstruction}
 
 News Title: ${title}
 Summary: ${description}
 Related Tokens: ${tokenInfo}
+
+Macro assets available for correlation analysis: Gold (GC=F), Crude Oil (CL=F), Silver (SI=F), S&P 500 (SPY), Nasdaq (QQQ), USD Index (DX-Y.NYB), 10Y Yield (TNX), NVIDIA (NVDA).
 
 Provide a JSON response with this exact structure:
 {
@@ -36,10 +38,14 @@ Provide a JSON response with this exact structure:
       "rr": "risk/reward ratio like 1:2.5",
       "reasoning": "brief reason"
     }
-  ]
+  ],
+  "relatedAssets": [
+    { "symbol": "GC=F", "name": "Gold", "reason": "why this macro asset is relevant" }
+  ],
+  "assetNote": "One sentence explaining macro asset correlations with this news"
 }
 
-Only include tokens mentioned in the news. Maximum 3 recommendations. Be concise and professional.`;
+Only include tokens mentioned in the news for recommendations (max 3). For relatedAssets, include 1-3 macro assets most relevant to this news event. Be concise and professional.`;
 
   try {
     const aiRes = await fetch('https://api.deepseek.com/chat/completions', {
