@@ -737,6 +737,17 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
     return '$' + p.toFixed(4);
   }
 
+  // 取离某个时间戳最近的 K 线历史价格
+  function getPriceAt(tsMs) {
+    if (!candles.length) return null;
+    let best = candles[0], bestDiff = Math.abs(candles[0].t - tsMs);
+    for (const c of candles) {
+      const d = Math.abs(c.t - tsMs);
+      if (d < bestDiff) { bestDiff = d; best = c; }
+    }
+    return best.c;
+  }
+
   // 销毁旧图表
   if (window._lwChart) {
     try { window._lwChart.remove(); } catch(e) {}
@@ -747,102 +758,93 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
   // 创建 Lightweight Chart
   const chart = LightweightCharts.createChart(container, {
     width: container.clientWidth,
-    height: 160,
+    height: 180,
     layout: {
       background: { color: '#0d1520' },
       textColor: '#64748b',
       fontSize: 10,
     },
     grid: {
-      vertLines: { color: '#1e293b', style: 1 },
-      horzLines: { color: '#1e293b', style: 1 },
+      vertLines: { color: '#1e293b80', style: 1 },
+      horzLines: { color: '#1e293b80', style: 1 },
     },
     crosshair: {
       mode: LightweightCharts.CrosshairMode.Normal,
-      vertLine: { color: '#334155', width: 1, style: 2 },
-      horzLine: { color: '#334155', width: 1, style: 2 },
+      vertLine: { color: '#334155', width: 1, style: 2, labelVisible: true },
+      horzLine: { color: '#334155', width: 1, style: 2, labelVisible: true },
     },
-    rightPriceScale: {
-      borderColor: '#1e293b',
-      textColor: '#64748b',
-    },
+    rightPriceScale: { borderColor: '#1e293b', textColor: '#64748b' },
     timeScale: {
       borderColor: '#1e293b',
       timeVisible: true,
       secondsVisible: false,
-      tickMarkFormatter: (time) => {
-        const d = new Date(time * 1000);
-        return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-      },
     },
     handleScroll: { mouseWheel: true, pressedMouseMove: true },
     handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
   });
   window._lwChart = chart;
 
-  // 添加面积线
-  const areaSeries = chart.addAreaSeries({
-    lineColor: '#137fec',
-    topColor: '#137fec33',
-    bottomColor: '#137fec00',
-    lineWidth: 2,
+  // K 线系列
+  const candleSeries = chart.addCandlestickSeries({
+    upColor: '#10b981',
+    downColor: '#ef4444',
+    borderUpColor: '#10b981',
+    borderDownColor: '#ef4444',
+    wickUpColor: '#10b981',
+    wickDownColor: '#ef4444',
     priceLineVisible: false,
-    lastValueVisible: false,
-    crossHairMarkerVisible: true,
-    crossHairMarkerRadius: 4,
+    lastValueVisible: true,
   });
 
-  // 设置 K 线数据（秒级时间戳）
+  // 设置 K 线数据（去重 + 排序）
   if (candles.length) {
-    const lineData = candles
-      .map(c => ({ time: Math.floor(c.t / 1000), value: c.c }))
-      .filter(d => d.time > 0)
-      .sort((a, b) => a.time - b.time);
-    // 去重
     const seen = new Set();
-    const uniqueData = lineData.filter(d => {
-      if (seen.has(d.time)) return false;
-      seen.add(d.time); return true;
-    });
-    if (uniqueData.length) areaSeries.setData(uniqueData);
+    const klineData = candles
+      .map(c => ({
+        time: Math.floor(c.t / 1000),
+        open: c.o, high: c.h, low: c.l, close: c.c
+      }))
+      .filter(d => { if (seen.has(d.time)) return false; seen.add(d.time); return true; })
+      .sort((a, b) => a.time - b.time);
+    if (klineData.length) candleSeries.setData(klineData);
   }
 
-  // 添加事件标记
+  // 事件标记：用历史价格定位，奇偶交替 above/below
   const markers = events.slice(0, 10).map((item, idx) => {
     const tsMs = new Date(item.pubDate).getTime();
     const tsSec = Math.floor(tsMs / 1000);
     const color = colors[idx % colors.length];
     const isActive = item === activeItem;
-    const change = item.tokens?.[0]?.change24h || 0;
+    const histPrice = getPriceAt(tsMs);  // 用历史价，不是当前价
+
     return {
       time: tsSec,
       position: idx % 2 === 0 ? 'aboveBar' : 'belowBar',
       color: color,
       shape: isActive ? 'arrowDown' : 'circle',
-      text: `#${idx+1} ${fmtPrice(item.tokens?.[0]?.price)}`,
+      text: `#${idx+1}${histPrice ? ' ' + fmtPrice(histPrice) : ''}`,
       size: isActive ? 2 : 1,
     };
   }).sort((a, b) => a.time - b.time);
 
-  areaSeries.setMarkers(markers);
+  candleSeries.setMarkers(markers);
 
-  // 自适应时间范围：覆盖所有事件
+  // 自适应时间范围
   const eventTimes = events.map(e => Math.floor(new Date(e.pubDate).getTime() / 1000));
-  const tFrom = Math.min(...eventTimes) - 3600 * 2;
-  const tTo   = Math.max(...eventTimes) + 3600 * 2;
+  const tFrom = Math.min(...eventTimes) - 3600 * 3;
+  const tTo   = Math.max(...eventTimes) + 3600 * 3;
   chart.timeScale().setVisibleRange({ from: tFrom, to: tTo });
 
-  // 响应窗口大小
-  const resizeObs = new ResizeObserver(() => {
+  // 响应宽度变化
+  new ResizeObserver(() => {
     chart.applyOptions({ width: container.clientWidth });
-  });
-  resizeObs.observe(container);
+  }).observe(container);
 
-  // 图例
+  // 图例（使用历史价）
   const legendEl = document.getElementById('axisLegend');
   legendEl.innerHTML = events.slice(0, 10).map((item, idx) => {
     const color = colors[idx % colors.length];
-    const price = item.tokens?.[0]?.price;
+    const histPrice = getPriceAt(new Date(item.pubDate).getTime());
     return `
     <div onclick="analyzeNews(window._timelineItems[${idx}])"
       style="display:flex;align-items:center;gap:4px;cursor:pointer;
@@ -851,19 +853,12 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
       <span style="width:14px;height:14px;border-radius:50%;background:${color};
         display:inline-flex;align-items:center;justify-content:center;
         font-size:8px;font-weight:bold;color:#fff;flex-shrink:0;">${idx+1}</span>
-      <span style="font-size:9px;color:#94a3b8;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.title.slice(0,28)}</span>
-      <span style="font-size:9px;font-weight:700;color:${color};flex-shrink:0;">${fmtPrice(price)}</span>
+      <span style="font-size:9px;color:#94a3b8;max-width:130px;overflow:hidden;
+        text-overflow:ellipsis;white-space:nowrap;">${item.title.slice(0,28)}</span>
+      <span style="font-size:9px;font-weight:700;color:${color};flex-shrink:0;">
+        ${fmtPrice(histPrice)}</span>
     </div>`;
   }).join('');
-
-  // Crosshair 显示事件信息
-  chart.subscribeCrosshairMove(param => {
-    if (!param.time) return;
-    const closest = events.slice(0, 10).reduce((best, item, idx) => {
-      const d = Math.abs(Math.floor(new Date(item.pubDate).getTime() / 1000) - param.time);
-      return (!best || d < best.d) ? { item, idx, d } : best;
-    }, null);
-  });
 }
 
 
