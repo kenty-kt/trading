@@ -705,8 +705,8 @@ async function buildEventTimeline(clickedItem, allItems) {
   // 2. 取时间范围：最早事件前6H 到 现在
   // 时间范围：最早事件前2H 到 最晚事件后2H
   const eventTimestamps = related.map(i => Math.floor(new Date(i.pubDate).getTime() / 1000));
-  const minTs = Math.min(...eventTimestamps) - 2 * 3600;
-  const maxTs = Math.max(...eventTimestamps) + 2 * 3600;
+  const minTs = Math.min(...eventTimestamps) - 6 * 3600;  // 前6H
+  const maxTs = Math.max(...eventTimestamps) + 6 * 3600;  // 后6H
 
   // 3. 拉 Binance K线（4H）
   let candles = [];
@@ -810,22 +810,35 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
   }
 
   // 事件标记：用历史价格定位，奇偶交替 above/below
-  const markers = events.slice(0, 10).map((item, idx) => {
+  // 生成标记，时间相同或相近的错开，确保每个时间戳唯一
+  const rawMarkers = events.slice(0, 10).map((item, idx) => {
     const tsMs = new Date(item.pubDate).getTime();
     const tsSec = Math.floor(tsMs / 1000);
     const color = colors[idx % colors.length];
     const isActive = item === activeItem;
-    const histPrice = getPriceAt(tsMs);  // 用历史价，不是当前价
-
-    return {
-      time: tsSec,
-      position: idx % 2 === 0 ? 'aboveBar' : 'belowBar',
-      color: color,
-      shape: isActive ? 'arrowDown' : 'circle',
-      text: `#${idx+1}${histPrice ? ' ' + fmtPrice(histPrice) : ''}`,
-      size: isActive ? 2 : 1,
-    };
+    const histPrice = getPriceAt(tsMs);
+    return { time: tsSec, idx, item, color, isActive, histPrice };
   }).sort((a, b) => a.time - b.time);
+
+  // 去重：相同时间戳的标记各自错开一根 K 线（4H = 14400s）
+  const usedTimes = new Set();
+  const markers = rawMarkers.map(m => {
+    let t = m.time;
+    // 找到一个没被占用的时间（向后错一根4H K线）
+    const intervalSec = 14400;
+    let offset = 0;
+    while (usedTimes.has(t + offset)) { offset += intervalSec; }
+    t = t + offset;
+    usedTimes.add(t);
+    return {
+      time: t,
+      position: m.idx % 2 === 0 ? 'aboveBar' : 'belowBar',
+      color: m.color,
+      shape: m.isActive ? 'arrowDown' : 'circle',
+      text: `#${m.idx+1}${m.histPrice ? ' ' + fmtPrice(m.histPrice) : ''}`,
+      size: m.isActive ? 2 : 1,
+    };
+  });
 
   candleSeries.setMarkers(markers);
 
