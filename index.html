@@ -937,12 +937,19 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
       position: pos,
       color: m.color,
       shape: shape,
-      text: `#${m.idx + 1}`,
+      text: `#${m.idx+1} ${m.histPrice ? fmtPrice(m.histPrice) : ''} · ${m.item.title.slice(0,22)}`,
       size: m.isActive ? 2 : 1,
     };
   });
 
   candleSeries.setMarkers(markers);
+  // 保存标记原始数据供 hover tooltip 用
+  window._lwMarkersData = rawMarkers.map(m => ({
+    idx: m.idx,
+    histPrice: m.histPrice ? fmtPrice(m.histPrice) : null,
+    title: m.item.title,
+    color: m.color,
+  }));
 
     // 默认：确保所有事件标记都在可见范围内
   const eventTimes = events.map(e => Math.floor(new Date(e.pubDate).getTime() / 1000));
@@ -963,19 +970,22 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
     const dateStr = new Date(item.pubDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     const isActive = item === activeItem;
     return `
-    <div onclick="analyzeNews(window._timelineItems[${idx}])"
+    <div data-legend-idx="${idx}" onclick="analyzeNews(window._timelineItems[${idx}])"
+      onmouseenter="lwHoverLegend(${idx}, true)"
+      onmouseleave="lwHoverLegend(${idx}, false)"
+      id="legendCard_${idx}"
       style="display:flex;align-items:center;gap:5px;cursor:pointer;
         padding:3px 8px;border-radius:5px;
         border:1px solid ${isActive ? color : color+'33'};
         background:${isActive ? color+'18' : color+'0d'};
-        flex-shrink:0;">
+        flex-shrink:0;transition:background .15s;">
       <span style="width:18px;height:18px;border-radius:50%;background:${color};
         display:inline-flex;align-items:center;justify-content:center;
         font-size:10px;font-weight:bold;color:#fff;flex-shrink:0;">${idx+1}</span>
       <div style="display:flex;flex-direction:column;gap:1px;min-width:0;">
         <span style="font-size:10px;color:${isActive?'#e2e8f0':'#94a3b8'};font-weight:${isActive?'600':'400'};
-          max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-          ${item.title.slice(0, 40)}${item.title.length > 40 ? '…' : ''}</span>
+          max-width:160px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.35;">
+          ${item.title}</span>
         <div style="display:flex;gap:6px;align-items:center;">
           <span style="font-size:9px;color:#475569;">${dateStr}</span>
           ${histPrice ? `<span style="font-size:9px;font-weight:700;color:${color};">${fmtPrice(histPrice)}</span>` : ''}
@@ -983,6 +993,45 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
       </div>
     </div>`;
   }).join('');
+}
+
+// ===== Hover 联动：图例 ↔ K线标记 =====
+const LW_COLORS = ['#ef4444','#f59e0b','#3b82f6','#10b981','#8b5cf6','#ec4899','#14b8a6','#f97316','#a855f7','#06b6d4'];
+
+function lwHoverLegend(idx, isEnter) {
+  // 高亮图例卡片
+  const card = document.getElementById('legendCard_' + idx);
+  if (card) {
+    const color = LW_COLORS[idx % LW_COLORS.length];
+    card.style.background = isEnter ? color + '28' : '';
+    card.style.borderColor = isEnter ? color : '';
+  }
+  // 在K线图上显示十字线（crosshair）对应时间
+  if (isEnter && window._lwChart && window._timelineItems) {
+    const item = window._timelineItems[idx];
+    if (!item) return;
+    // 用 tooltip div 显示标题+价格
+    let tip = document.getElementById('lwHoverTip');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.id = 'lwHoverTip';
+      tip.style.cssText = 'position:absolute;top:4px;left:50%;transform:translateX(-50%);' +
+        'background:#1e293bee;border:1px solid #334155;border-radius:6px;' +
+        'padding:5px 10px;font-size:10px;color:#e2e8f0;pointer-events:none;' +
+        'z-index:20;white-space:nowrap;max-width:320px;white-space:normal;line-height:1.4;text-align:center;';
+      const wrap = document.getElementById('eventAxisChart');
+      if (wrap) { wrap.style.position = 'relative'; wrap.appendChild(tip); }
+    }
+    const color = LW_COLORS[idx % LW_COLORS.length];
+    const histPrice = window._lwMarkersData?.[idx]?.histPrice;
+    tip.innerHTML = `<span style="color:${color};font-weight:700;">#${idx+1}</span> `
+      + (histPrice ? `<span style="color:${color};">${histPrice}</span> · ` : '')
+      + `<span>${item.title}</span>`;
+    tip.style.display = 'block';
+  } else {
+    const tip = document.getElementById('lwHoverTip');
+    if (tip) tip.style.display = 'none';
+  }
 }
 
 
