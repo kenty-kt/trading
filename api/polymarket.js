@@ -70,7 +70,7 @@ module.exports = async function handler(req, res) {
               price: outcomePrices[i] ? parseFloat(outcomePrices[i]).toFixed(3) : null,
               probability: outcomePrices[i] ? (parseFloat(outcomePrices[i]) * 100).toFixed(1) + '%' : 'N/A',
             })),
-            url: `https://polymarket.com/event/${m.slug}`,
+            url: `https://polymarket.com/market/${m.slug}`,
           };
         });
 
