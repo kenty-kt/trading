@@ -597,7 +597,7 @@ function initChart(symbol, newsItems) {
 }
 
 // 历史相似事件 - 取过去3个相同时间段的真实K线
-async function loadHistoricalEvents(symbol, newsTimestamp) {
+async function loadHistoricalEvents(symbol, newsTimestamp, newsTitle = '') {
   const grid = document.getElementById('histEventsGrid');
   grid.innerHTML = '<div class="col-span-2 text-center text-slate-400 text-xs py-4 animate-pulse">Loading historical data...</div>';
 
@@ -620,7 +620,7 @@ async function loadHistoricalEvents(symbol, newsTimestamp) {
       // 并行拉 K线 + 历史新闻
       const [klineRes, newsRes] = await Promise.all([
         fetch(`/api/history?symbol=${binanceSymbol}&from=${from}&to=${to}`),
-        fetch(`/api/historynews?ts=${midTs}&symbol=${symbol}&limit=4`).catch(() => ({ ok: false })),
+        fetch(`/api/historynews?ts=${midTs}&symbol=${symbol}&limit=8&q=${encodeURIComponent(newsTitle)}`).catch(() => ({ ok: false })),
       ]);
       const d = await klineRes.json();
       const nd = newsRes.ok !== false ? await newsRes.json().catch(() => ({ news: [] })) : { news: [] };
@@ -658,7 +658,7 @@ async function loadHistoricalEvents(symbol, newsTimestamp) {
               ${n.title}
             </a>`).join('')}
         </div>`
-      : `<div style="font-size:9px;color:#334155;border-top:1px solid #1e293b;padding-top:6px;">No news found for this period</div>`;
+      : `<div style="font-size:9px;color:#334155;border-top:1px solid #1e293b;padding-top:6px;">No similar news found for this period</div>`;
 
     return `
     <div class="p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#101922] flex flex-col gap-3">
@@ -1227,7 +1227,7 @@ async function analyzeNews(item) {
   initChart(chartSymbol, allNewsItems);
 
   // 加载历史相似事件 & 事件时间轴
-  loadHistoricalEvents(chartSymbol, item.pubDate);
+  loadHistoricalEvents(chartSymbol, item.pubDate, item.title || '');
   buildEventTimeline(item, allNewsItems);
   const signalText = document.getElementById('signalText');
   const signalBadge = document.getElementById('signalBadge');
