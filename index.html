@@ -683,6 +683,14 @@ async function buildEventTimeline(clickedItem, allItems) {
   const wrap = document.getElementById('eventAxisWrap');
   wrap.style.display = 'block';
 
+  // 销毁旧图表（容器先清空，等显示后再建图表）
+  if (window._lwChart) {
+    try { window._lwChart.remove(); } catch(e) {}
+    window._lwChart = null;
+  }
+  const chartContainer = document.getElementById('eventAxisChart');
+  if (chartContainer) chartContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#475569;font-size:11px;">Loading chart data...</div>';
+
   const mainToken = clickedItem.tokens?.[0];
   const symbol = mainToken?.symbol || 'BTC';
   const binanceSymbol = (TV_SYMBOL_MAP[symbol] || 'BINANCE:BTCUSDT').replace('BINANCE:', '');
@@ -730,9 +738,11 @@ async function buildEventTimeline(clickedItem, allItems) {
       .sort((a, b) => a.t - b.t);
   } catch(e) {}
 
-  // 4. 渲染 Canvas
+  // 4. 等容器渲染完再创建图表
   window._timelineItems = related;
-  renderEventAxisCanvas(candles, related, clickedItem, symbol);
+  requestAnimationFrame(() => {
+    setTimeout(() => renderEventAxisCanvas(candles, related, clickedItem, symbol), 50);
+  });
 
   document.getElementById('axisMeta').textContent =
     related.length + ' events · ' + symbol + ' 4H data';
@@ -773,8 +783,9 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
   container.innerHTML = '';
 
   // 创建 Lightweight Chart
+  const chartW = container.clientWidth || container.offsetWidth || 600;
   const chart = LightweightCharts.createChart(container, {
-    width: container.clientWidth,
+    width: chartW,
     height: 220,
     layout: {
       background: { color: '#0d1520' },
