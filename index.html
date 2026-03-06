@@ -864,7 +864,7 @@ async function changePage(page) {
   const totalPages = Math.ceil(allNewsItems.length / PAGE_SIZE);
   if (page < 1 || page > totalPages) return;
   currentPage = page;
-  renderPage(currentPage);
+  await renderPage(currentPage);
   document.getElementById('newsFeed').scrollTop = 0;
 }
 
@@ -876,7 +876,7 @@ function renderNews(items) {
   }
   allNewsItems = items;
   currentPage = 1;
-  renderPage(1);
+  await renderPage(1);
   if (items.length > 0) analyzeNews(items[0]);
 }
 
@@ -1191,7 +1191,6 @@ async function applyLang(lang) {
   document.getElementById('langLabel').textContent = lang === 'zh' ? '中文' : 'EN';
 
   if (lang === 'zh') {
-    // 翻译所有带 data-i18n 属性的元素
     const els = document.querySelectorAll('[data-i18n]');
     const keys = [...new Set([...els].map(el => el.getAttribute('data-i18n')))];
     const enTexts = keys.map(k => I18N_EN[k] || k);
@@ -1206,7 +1205,6 @@ async function applyLang(lang) {
       }
     });
   } else {
-    // 还原英文
     const els = document.querySelectorAll('[data-i18n]');
     els.forEach(el => {
       const key = el.getAttribute('data-i18n');
@@ -1215,6 +1213,24 @@ async function applyLang(lang) {
         else el.textContent = I18N_EN[key];
       }
     });
+  }
+
+  // 重新渲染新闻列表（应用新语言翻译）
+  if (allNewsItems.length > 0) {
+    await renderPage(currentPage);
+    // 重新渲染当前选中的新闻详情
+    if (window._currentItem) {
+      const item = window._currentItem;
+      let title = item.title;
+      let body = item.description.replace(/\.\.\.$/, '');
+      if (lang === 'zh') {
+        const translated = await translateToZh([title, body]);
+        title = translated[0] || title;
+        body = translated[1] || body;
+      }
+      document.getElementById('newsTitle').textContent = title;
+      document.getElementById('newsBody').textContent = body;
+    }
   }
 }
 
