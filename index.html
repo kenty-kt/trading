@@ -943,13 +943,16 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
   });
 
   candleSeries.setMarkers(markers);
-  // 保存标记原始数据供 hover tooltip 用
-  window._lwMarkersData = rawMarkers.map(m => ({
+  // 保存标记原始数据供 hover 用（含时间戳和价格数值）
+  window._lwMarkersData = rawMarkers.map((m, i) => ({
     idx: m.idx,
+    time: markers.find(mk => mk.color === m.color)?.time ?? m.time,
+    priceVal: m.histPrice,
     histPrice: m.histPrice ? fmtPrice(m.histPrice) : null,
     title: m.item.title,
     color: m.color,
   }));
+  window._lwCandleSeries = candleSeries;
 
     // 默认：确保所有事件标记都在可见范围内
   const eventTimes = events.map(e => Math.floor(new Date(e.pubDate).getTime() / 1000));
@@ -995,40 +998,52 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
   }).join('');
 }
 
-// ===== Hover 联动：图例 ↔ K线标记 =====
+// ===== Hover 联动：图例 ↔ K线标记高亮 =====
 const LW_COLORS = ['#ef4444','#f59e0b','#3b82f6','#10b981','#8b5cf6','#ec4899','#14b8a6','#f97316','#a855f7','#06b6d4'];
 
 function lwHoverLegend(idx, isEnter) {
-  // 高亮图例卡片
+  // 图例卡片高亮
   const card = document.getElementById('legendCard_' + idx);
   if (card) {
     const color = LW_COLORS[idx % LW_COLORS.length];
     card.style.background = isEnter ? color + '28' : '';
     card.style.borderColor = isEnter ? color : '';
   }
-  // 在K线图上显示十字线（crosshair）对应时间
-  if (isEnter && window._lwChart && window._timelineItems) {
-    const item = window._timelineItems[idx];
-    if (!item) return;
-    // 用 tooltip div 显示标题+价格
+
+  if (isEnter && window._lwChart && window._lwMarkersData && window._lwCandleSeries) {
+    const md = window._lwMarkersData.find(m => m.idx === idx);
+    if (!md) return;
+
+    // 把十字线移到标记对应的时间和价格
+    try {
+      window._lwChart.setCrosshairPosition(
+        md.priceVal || 0,
+        md.time,
+        window._lwCandleSeries
+      );
+    } catch(e) {}
+
+    // tooltip 显示在图表顶部
     let tip = document.getElementById('lwHoverTip');
     if (!tip) {
       tip = document.createElement('div');
       tip.id = 'lwHoverTip';
-      tip.style.cssText = 'position:absolute;top:4px;left:50%;transform:translateX(-50%);' +
+      tip.style.cssText = 'position:absolute;top:6px;left:50%;transform:translateX(-50%);' +
         'background:#1e293bee;border:1px solid #334155;border-radius:6px;' +
-        'padding:5px 10px;font-size:10px;color:#e2e8f0;pointer-events:none;' +
-        'z-index:20;white-space:nowrap;max-width:320px;white-space:normal;line-height:1.4;text-align:center;';
+        'padding:5px 12px;font-size:10px;color:#e2e8f0;pointer-events:none;' +
+        'z-index:20;max-width:340px;line-height:1.5;text-align:center;white-space:normal;';
       const wrap = document.getElementById('eventAxisChart');
       if (wrap) { wrap.style.position = 'relative'; wrap.appendChild(tip); }
     }
     const color = LW_COLORS[idx % LW_COLORS.length];
-    const histPrice = window._lwMarkersData?.[idx]?.histPrice;
-    tip.innerHTML = `<span style="color:${color};font-weight:700;">#${idx+1}</span> `
-      + (histPrice ? `<span style="color:${color};">${histPrice}</span> · ` : '')
-      + `<span>${item.title}</span>`;
+    tip.innerHTML =
+      `<span style="color:${color};font-weight:700;margin-right:6px;">#${idx+1}</span>` +
+      (md.histPrice ? `<span style="color:${color};font-weight:700;margin-right:6px;">${md.histPrice}</span>` : '') +
+      `<span style="color:#cbd5e1;">${md.title}</span>`;
     tip.style.display = 'block';
   } else {
+    // 清除十字线
+    try { if (window._lwChart) window._lwChart.clearCrosshairPosition(); } catch(e) {}
     const tip = document.getElementById('lwHoverTip');
     if (tip) tip.style.display = 'none';
   }
