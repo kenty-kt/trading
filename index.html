@@ -935,7 +935,7 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
       position: m.idx % 2 === 0 ? 'aboveBar' : 'belowBar',
       color: m.color,
       shape: m.isActive ? 'arrowDown' : 'circle',
-      text: `${m.idx + 1}`,
+      text: `${m.idx + 1} ${m.histPrice ? fmtPrice(m.histPrice) : ''}`,
       size: m.isActive ? 2 : 1,
     };
   });
@@ -967,9 +967,9 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
         border:1px solid ${isActive ? color : color+'33'};
         background:${isActive ? color+'18' : color+'0d'};
         flex-shrink:0;">
-      <span style="width:16px;height:16px;border-radius:50%;background:${color};
+      <span style="width:18px;height:18px;border-radius:50%;background:${color};
         display:inline-flex;align-items:center;justify-content:center;
-        font-size:9px;font-weight:bold;color:#fff;flex-shrink:0;">${idx+1}</span>
+        font-size:10px;font-weight:bold;color:#fff;flex-shrink:0;">${idx+1}</span>
       <div style="display:flex;flex-direction:column;gap:1px;min-width:0;">
         <span style="font-size:10px;color:${isActive?'#e2e8f0':'#94a3b8'};font-weight:${isActive?'600':'400'};
           max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
