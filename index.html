@@ -450,45 +450,84 @@ function switchInterval(label, btn) {
 
 function renderNewsMarkers(newsItems) {
   window._currentNewsItems = newsItems;
-  const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'];
-  const markersEl = document.getElementById('news_markers');
+  if (!tvWidget || !newsItems || !newsItems.length) return;
+
+  // 等图表就绪后再打标
+  try {
+    const chart = tvWidget.activeChart();
+    if (!chart) { setTimeout(() => renderNewsMarkers(newsItems), 500); return; }
+    _doRenderMarkers(chart, newsItems);
+  } catch(e) {
+    setTimeout(() => renderNewsMarkers(newsItems), 500);
+  }
+}
+
+function _doRenderMarkers(chart, newsItems) {
+  const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#a855f7', '#06b6d4'];
   const legendEl = document.getElementById('news_legend');
-  if (!markersEl || !newsItems || !newsItems.length) return;
 
-  const intervalMs = { '60': 3600000, '240': 14400000, 'D': 86400000 }[currentInterval] || 14400000;
-  const now = Date.now();
-  const windowMs = intervalMs * 60; // 显示60根K线的时间范围
-  const chartStart = now - windowMs;
+  // 清除旧标记
+  if (window._tvMarkerIds && window._tvMarkerIds.length) {
+    window._tvMarkerIds.forEach(id => { try { chart.removeEntity(id); } catch(e){} });
+  }
+  window._tvMarkerIds = [];
 
-  const markers = newsItems.slice(0, 10).map((item, idx) => {
-    const ts = new Date(item.pubDate).getTime();
-    const ratio = (ts - chartStart) / windowMs;
-    return { item, idx, ratio, color: colors[idx % colors.length] };
-  }).filter(m => m.ratio >= 0.02 && m.ratio <= 0.98);
+  const validMarkers = [];
+  newsItems.slice(0, 10).forEach((item, idx) => {
+    const tsMs = new Date(item.pubDate).getTime();
+    if (isNaN(tsMs)) return;
+    const tsSec = Math.floor(tsMs / 1000);
+    validMarkers.push({ item, idx, tsSec, color: colors[idx % colors.length] });
+  });
 
-  markersEl.innerHTML = markers.map(m => `
-    <div style="position:absolute;left:${(m.ratio * 100).toFixed(1)}%;bottom:0;top:0;pointer-events:none;">
-      <div style="position:absolute;top:0;bottom:0;left:0;width:1px;background:${m.color};opacity:0.6;"></div>
-      <div style="position:absolute;top:6px;left:-10px;width:20px;height:20px;border-radius:50%;background:${m.color};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;color:white;box-shadow:0 0 6px ${m.color}88;z-index:10;">
-        ${m.idx + 1}
-      </div>
-    </div>
-  `).join('');
+  validMarkers.forEach(m => {
+    try {
+      const id = chart.createShape(
+        { time: m.tsSec },
+        {
+          shape: 'vertical_line',
+          lock: true,
+          disableSelection: true,
+          disableSave: true,
+          disableUndo: true,
+          overrides: {
+            linecolor: m.color,
+            linewidth: 1,
+            linestyle: 2,
+            showLabel: true,
+            text: String(m.idx + 1),
+            textcolor: m.color,
+            fontsize: 11,
+            bold: true,
+            horzLabelsAlign: 'center',
+            vertLabelsAlign: 'top',
+          }
+        }
+      );
+      if (id) window._tvMarkerIds.push(id);
+    } catch(e) {}
+  });
 
-  legendEl.innerHTML = markers.map(m => `
-    <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#94a3b8;">
-      <span style="width:16px;height:16px;border-radius:50%;background:${m.color};display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;color:white;flex-shrink:0;">${m.idx + 1}</span>
-      <span style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.item.title.slice(0, 30)}...</span>
-    </div>
-  `).join('');
+  if (legendEl) {
+    legendEl.innerHTML = validMarkers.map(m => `
+      <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#94a3b8;max-width:180px;">
+        <span style="width:16px;height:16px;border-radius:50%;background:${m.color};display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;color:white;flex-shrink:0;">${m.idx+1}</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.item.title.slice(0,28)}…</span>
+      </div>`).join('');
+  }
+
+  // 清空旧 HTML overlay
+  const markersEl = document.getElementById('news_markers');
+  if (markersEl) markersEl.innerHTML = '';
 }
 
 function initChart(symbol, newsItems) {
   const tvSymbol = TV_SYMBOL_MAP[symbol] || 'BINANCE:BTCUSDT';
 
   if (tvWidget) {
-    tvWidget.remove();
+    try { tvWidget.remove(); } catch(e) {}
     tvWidget = null;
+    window._tvMarkerIds = [];
   }
 
   tvWidget = new TradingView.widget({
@@ -523,8 +562,14 @@ function initChart(symbol, newsItems) {
       'paneProperties.backgroundType': 'solid',
     },
     onChartReady: function() {
-      // 图表加载完后渲染 HTML 标记层
-      setTimeout(() => renderNewsMarkers(newsItems), 500);
+      setTimeout(() => {
+        try {
+          const chart = tvWidget.activeChart();
+          _doRenderMarkers(chart, newsItems);
+        } catch(e) {
+          setTimeout(() => renderNewsMarkers(newsItems), 1000);
+        }
+      }, 800);
     }
   });
 }
