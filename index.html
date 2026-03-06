@@ -1247,7 +1247,7 @@ function renderWatchlist(assets, highlighted = []) {
         <span class="text-[10px] font-bold ${changeColor}">${isUp ? '▲' : '▼'} ${Math.abs(a.change).toFixed(2)}%</span>
         ${spark}
       </div>
-      ${reason ? `<p class="text-[8px] text-blue-400 leading-tight line-clamp-2">${reason}</p>` : ''}
+      ${reason ? `<p style="font-size:14px;font-family:'Work Sans',sans-serif;color:#60a5fa;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">${reason}</p>` : ''}
     </div>`;
   }).join('');
 }
