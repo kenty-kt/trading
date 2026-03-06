@@ -705,15 +705,29 @@ async function buildEventTimeline(clickedItem, allItems) {
   // 2. 取时间范围：最早事件前6H 到 现在
   // 时间范围：最早事件前2H 到 最晚事件后2H
   const eventTimestamps = related.map(i => Math.floor(new Date(i.pubDate).getTime() / 1000));
-  const minTs = Math.floor(Date.now() / 1000) - 90 * 24 * 3600; // 最近3个月
+  // 拉最近7天1H K线（覆盖新闻事件），再拉3个月作为背景
   const maxTs = Math.floor(Date.now() / 1000);
+  const minTs = maxTs - 90 * 24 * 3600;
 
-  // 3. 拉 Binance K线（4H）
+  // 先拉近7天（确保新闻时间点有数据）
+  const recent7dFrom = maxTs - 7 * 24 * 3600;
+
+  // 3. 拉 Binance K线：分两段合并，确保覆盖最新事件
   let candles = [];
   try {
-    const r = await fetch(`/api/history?symbol=${binanceSymbol}&from=${minTs}&to=${maxTs}`);
-    const d = await r.json();
-    candles = d.candles || [];
+    // 近7天 1H K线（覆盖新闻）+ 3个月 4H K线（背景）并行拉取
+    const [recentRes, bgRes] = await Promise.all([
+      fetch(`/api/history?symbol=${binanceSymbol}&from=${recent7dFrom}&to=${maxTs}`),
+      fetch(`/api/history?symbol=${binanceSymbol}&from=${minTs}&to=${recent7dFrom}`)
+    ]);
+    const recentData = await recentRes.json();
+    const bgData = await bgRes.json();
+    // 合并去重排序
+    const all = [...(bgData.candles || []), ...(recentData.candles || [])];
+    const seen = new Set();
+    candles = all
+      .filter(c => { if (seen.has(c.t)) return false; seen.add(c.t); return true; })
+      .sort((a, b) => a.t - b.t);
   } catch(e) {}
 
   // 4. 渲染 Canvas
@@ -740,11 +754,14 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
   // 取离某个时间戳最近的 K 线历史价格
   function getPriceAt(tsMs) {
     if (!candles.length) return null;
+    // 找最近的K线，但如果时间差超过48H则认为超出范围
     let best = candles[0], bestDiff = Math.abs(candles[0].t - tsMs);
     for (const c of candles) {
       const d = Math.abs(c.t - tsMs);
       if (d < bestDiff) { bestDiff = d; best = c; }
     }
+    // 超过4小时视为无效（1H K线最大误差）
+    if (bestDiff > 4 * 3600 * 1000) return null;
     return best.c;
   }
 
@@ -816,7 +833,7 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
     const tsSec = Math.floor(tsMs / 1000);
     const color = colors[idx % colors.length];
     const isActive = item === activeItem;
-    const histPrice = getPriceAt(tsMs);
+    const histPrice = getPriceAt(tsMs) ?? item.tokens?.[0]?.price ?? null;
     return { time: tsSec, idx, item, color, isActive, histPrice };
   }).sort((a, b) => a.time - b.time);
 
@@ -856,7 +873,7 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
   const legendEl = document.getElementById('axisLegend');
   legendEl.innerHTML = events.slice(0, 10).map((item, idx) => {
     const color = colors[idx % colors.length];
-    const histPrice = getPriceAt(new Date(item.pubDate).getTime());
+    const histPrice = getPriceAt(new Date(item.pubDate).getTime()) ?? item.tokens?.[0]?.price ?? null;
     return `
     <div onclick="analyzeNews(window._timelineItems[${idx}])"
       style="display:flex;align-items:center;gap:4px;cursor:pointer;
