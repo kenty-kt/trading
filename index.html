@@ -924,18 +924,20 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
   const usedTimes = new Set();
   const markers = rawMarkers.map(m => {
     let t = m.time;
-    // 找到一个没被占用的时间（向后错一根4H K线）
-    const intervalSec = 3600; // 1H，与K线周期一致
+    const intervalSec = 3600;
     let offset = 0;
     while (usedTimes.has(t + offset)) { offset += intervalSec; }
     t = t + offset;
     usedTimes.add(t);
+    // 奇偶交替 above/below，用箭头形状更突出，不被K线遮挡
+    const pos = m.idx % 2 === 0 ? 'aboveBar' : 'belowBar';
+    const shape = pos === 'aboveBar' ? 'arrowDown' : 'arrowUp';
     return {
       time: t,
-      position: m.idx % 2 === 0 ? 'aboveBar' : 'belowBar',
+      position: pos,
       color: m.color,
-      shape: m.isActive ? 'arrowDown' : 'circle',
-      text: `${m.idx + 1} ${m.histPrice ? fmtPrice(m.histPrice) : ''}`,
+      shape: shape,
+      text: `${m.idx + 1}  ${m.histPrice ? fmtPrice(m.histPrice) : ''}`,
       size: m.isActive ? 2 : 1,
     };
   });
