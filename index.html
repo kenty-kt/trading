@@ -360,18 +360,18 @@
 </div>
 
 <!-- 重点关注资产 -->
-<div class="w-full border-t border-slate-200 dark:border-slate-700 pt-4 mt-2">
-  <div class="flex items-center justify-between mb-2">
+<div class="w-full border-t border-slate-800 pt-4 mt-2">
+  <div class="flex items-center justify-between mb-3">
     <h4 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
-      <span class="material-symbols-outlined text-sm">radar</span> Key Assets
+      <span class="material-symbols-outlined text-sm text-primary">radar</span> Key Assets
     </h4>
-    <span id="watchlistUpdated" style="font-size:9px;color:#475569;"></span>
+    <span id="watchlistUpdated" class="text-[9px] text-slate-600"></span>
   </div>
   <!-- AI 相关性提示 -->
-  <div id="watchlistAiNote" style="display:none;margin-bottom:8px;padding:6px 10px;background:#137fec11;border:1px solid #137fec33;border-radius:6px;font-size:10px;color:#93c5fd;line-height:1.5;"></div>
+  <div id="watchlistAiNote" class="hidden mb-3 px-3 py-2 rounded-lg border border-primary/20 bg-primary/5 text-xs text-blue-300 leading-relaxed"></div>
   <!-- 资产网格 -->
-  <div id="watchlistGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
-    <div style="grid-column:1/-1;text-align:center;color:#475569;font-size:11px;padding:12px;">Loading assets...</div>
+  <div id="watchlistGrid" class="grid gap-2" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
+    <div class="col-span-full text-center text-slate-600 text-xs py-4">Waiting for AI analysis...</div>
   </div>
 </div>
 </div>
@@ -663,8 +663,7 @@ async function loadHistoricalEvents(symbol, newsTimestamp, newsTitle = '', newsB
 
 function renderHistCards(results, symbol, newsTitle) {
   const grid = document.getElementById('histEventsGrid');
-  // mock 数据直接用，真实数据过滤有效的
-  const validResults = results[0]?._mock ? results : results.filter(r => !r.error && r.candles && r.candles.length);
+  const validResults = results[0]?._mock ? results : results.filter(r => !r.error && r.candles?.length);
   if (!validResults.length) {
     grid.innerHTML = `<div class="col-span-2 text-center py-8">
       <span class="material-symbols-outlined text-4xl text-slate-600 block mb-3">search_off</span>
@@ -673,64 +672,61 @@ function renderHistCards(results, symbol, newsTitle) {
   }
 
   grid.innerHTML = validResults.map((r, idx) => {
-    const dateStr = new Date(r.from * 1000).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+    const dateStr = new Date(r.from * 1000).toLocaleDateString('en-US', {year:'numeric', month:'short', day:'numeric'});
     const mainNews = r.newsItems[0];
     const isMock = r._mock;
 
-    // mock 数据直接填相似度
+    // 相似度徽章内容
     const simContent = isMock
-      ? `<div style="font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Similarity</div>
-         <div style="font-size:32px;font-weight:700;color:#f59e0b;line-height:1;">${r._mockSim}%</div>
-         <div style="font-size:8px;color:#64748b;margin-top:4px;">Best Match</div>`
-      : `<div style="font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Similarity</div>
-         <div style="font-size:28px;font-weight:700;color:#475569;line-height:1;">--</div>
-         <div style="font-size:8px;color:#334155;margin-top:2px;">Analyzing...</div>`;
+      ? `<p class="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Similarity</p>
+         <p class="text-3xl font-bold text-yellow-400 leading-none">${r._mockSim}%</p>
+         <p class="text-[8px] text-slate-500 mt-1">Best Match</p>`
+      : `<p class="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Similarity</p>
+         <p class="text-3xl font-bold text-slate-600 leading-none">--</p>
+         <p class="text-[8px] text-slate-600 mt-1">Analyzing...</p>`;
 
-    // mock T+7 预测
+    // mock T+7 预测网格
     const mockPredsHtml = isMock && r._mockPreds ? `
-      <div style="padding:10px 12px 8px;background:#101922;border:1px solid #1e293b;border-radius:8px;">
-        <div style="font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Nearby Indices T+7 <span style="color:#334155;">(example)</span></div>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+      <div class="bg-[#101922] border border-slate-700 rounded-lg p-3">
+        <p class="text-[9px] text-slate-500 uppercase tracking-wider mb-2">Nearby Indices T+7 <span class="text-slate-600 normal-case">(example)</span></p>
+        <div class="grid grid-cols-2 gap-2">
           ${r._mockPreds.map(p => {
             const isPos = !p.change.startsWith('-');
-            const color = isPos ? '#10b981' : '#ef4444';
-            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#0d1520;border-radius:6px;">
-              <span style="font-size:10px;color:#94a3b8;font-weight:600;">${p.asset}</span>
-              <span style="font-size:13px;font-weight:700;color:${color};">${p.change}</span>
+            const cls = isPos ? 'text-green-400' : 'text-red-400';
+            return `<div class="flex items-center justify-between px-2.5 py-2 bg-[#0d1520] rounded">
+              <span class="text-[10px] font-semibold text-slate-400">${p.asset}</span>
+              <span class="text-sm font-bold ${cls}">${p.change}</span>
             </div>`;
           }).join('')}
         </div>
       </div>` : '';
 
     return `
-    <div id="histCard_${idx}" style="background:#0d1520;border:1px solid ${isMock ? '#334155' : '#1e293b'};border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;
-      ${isMock ? 'opacity:0.75;' : ''}">
-      ${isMock ? `<div style="font-size:8px;color:#475569;text-align:right;margin-bottom:-8px;">⚠ Reference example only</div>` : ''}
+    <div id="histCard_${idx}" class="bg-[#0d1520] border ${isMock ? 'border-slate-700 opacity-75' : 'border-slate-800'} rounded-xl p-4 flex flex-col gap-3">
+      ${isMock ? `<p class="text-[8px] text-slate-600 text-right -mb-1">⚠ Reference example only</p>` : ''}
       <!-- 顶部：日期 + 相似度 -->
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
-        <div style="flex:1;">
-          <div style="font-size:10px;color:#475569;margin-bottom:2px;">Historical Case</div>
-          <div style="font-size:13px;font-weight:700;color:#e2e8f0;">${dateStr}</div>
-          <div style="font-size:9px;color:#64748b;margin-top:2px;">${r.label}</div>
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1">
+          <p class="text-[10px] text-slate-500 mb-0.5">Historical Case</p>
+          <p class="text-sm font-bold text-white">${dateStr}</p>
+          <p class="text-[9px] text-slate-500 mt-0.5">${r.label}</p>
         </div>
-        <div id="simBadge_${idx}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;
-          min-width:90px;padding:12px;background:#101922;border:1px solid #1e293b;border-radius:10px;">
+        <div id="simBadge_${idx}" class="flex flex-col items-center justify-center min-w-[80px] px-3 py-2.5 bg-[#101922] border border-slate-700 rounded-lg text-center">
           ${simContent}
         </div>
       </div>
       <!-- 新闻标题 -->
-      <div style="padding:10px 12px;background:#101922;border:1px solid #1e293b;border-radius:8px;min-height:48px;">
+      <div class="bg-[#101922] border border-slate-800 rounded-lg p-3 min-h-[52px]">
         ${mainNews
           ? `<a href="${mainNews.url}" target="_blank" rel="noopener"
-              style="display:block;font-size:11px;color:#94a3b8;line-height:1.5;text-decoration:none;"
-              onmouseover="this.style.color='#cbd5e1'" onmouseout="this.style.color='#94a3b8'">
+              class="block text-[11px] text-slate-400 leading-relaxed hover:text-slate-200 transition-colors">
               ${mainNews.title}
             </a>
-            <div style="font-size:8px;color:#475569;margin-top:6px;">${mainNews.source} · ${new Date(mainNews.publishedAt*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>`
-          : `<div style="font-size:9px;color:#334155;">No similar headlines found</div>`}
+            <p class="text-[8px] text-slate-600 mt-1.5">${mainNews.source} · ${new Date(mainNews.publishedAt*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</p>`
+          : `<p class="text-[9px] text-slate-600 flex items-center h-full">No similar headlines found</p>`}
       </div>
       <!-- T+7 预测 -->
-      <div id="histAI_${idx}" style="${isMock ? 'display:block' : 'display:none'};">${mockPredsHtml}</div>
+      <div id="histAI_${idx}" class="${isMock ? 'block' : 'hidden'}">${mockPredsHtml}</div>
     </div>`;
   }).join('');
 }
@@ -774,39 +770,35 @@ async function fetchHistSimilarity(newsTitle, newsBody, results, symbol) {
     data.historicalAnalysis.forEach(h => {
       const { idx, similarity, reason, factors, predictions } = h;
 
-      // 相似度卡片（大号显示，参考图片）
+      // 相似度徽章（统一 Tailwind 风格）
       const badge = document.getElementById(`simBadge_${idx}`);
       if (badge) {
         const pct = Math.round(similarity || 0);
-        const barColor = pct >= 70 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#ef4444';
+        const cls = pct >= 70 ? 'text-green-400' : pct >= 40 ? 'text-yellow-400' : 'text-red-400';
         badge.innerHTML = `
-          <div style="font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Similarity</div>
-          <div style="font-size:32px;font-weight:700;color:${barColor};line-height:1;">${pct}%</div>
-          <div style="font-size:8px;color:#64748b;margin-top:4px;">Best Match</div>`;
+          <p class="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Similarity</p>
+          <p class="text-3xl font-bold ${cls} leading-none">${pct}%</p>
+          <p class="text-[8px] text-slate-500 mt-1">Best Match</p>`;
       }
 
-      // T+7 预测网格（参考图片：4个资产卡片）
+      // T+7 预测网格
       const aiEl = document.getElementById(`histAI_${idx}`);
       if (aiEl && predictions && predictions.length) {
-        aiEl.style.display = 'block';
-        const predsHtml = `
-          <div style="padding:10px 12px 8px;background:#101922;border:1px solid #1e293b;border-radius:8px;">
-            <div style="font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">
-              Nearby Indices T+7
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+        aiEl.className = 'block';
+        aiEl.innerHTML = `
+          <div class="bg-[#101922] border border-slate-700 rounded-lg p-3">
+            <p class="text-[9px] text-slate-500 uppercase tracking-wider mb-2">Nearby Indices T+7</p>
+            <div class="grid grid-cols-2 gap-2">
               ${predictions.slice(0, 4).map(p => {
                 const isPos = !(p.change||'').startsWith('-');
-                const color = isPos ? '#10b981' : '#ef4444';
-                return `<div style="display:flex;align-items:center;justify-content:space-between;
-                  padding:8px 10px;background:#0d1520;border-radius:6px;">
-                  <span style="font-size:10px;color:#94a3b8;font-weight:600;">${p.asset}</span>
-                  <span style="font-size:13px;font-weight:700;color:${color};">${p.change}</span>
+                const cls2 = isPos ? 'text-green-400' : 'text-red-400';
+                return `<div class="flex items-center justify-between px-2.5 py-2 bg-[#0d1520] rounded">
+                  <span class="text-[10px] font-semibold text-slate-400">${p.asset}</span>
+                  <span class="text-sm font-bold ${cls2}">${p.change}</span>
                 </div>`;
               }).join('')}
             </div>
           </div>`;
-        aiEl.innerHTML = predsHtml;
       }
     });
   } catch(e) {
@@ -1227,46 +1219,35 @@ function renderWatchlist(assets, highlighted = []) {
   if (!grid) return;
   const cols = assets.length <= 2 ? assets.length : assets.length <= 4 ? 2 : 4;
   grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
   grid.innerHTML = assets.map(a => {
     const isUp = a.change >= 0;
-    const color = isUp ? '#10b981' : '#ef4444';
+    const changeColor = isUp ? 'text-green-400' : 'text-red-400';
     const spark = renderSparkline(a.spark, isUp);
     const reason = a._aiReason || '';
     const tradeUrl = a.tradeUrl || `https://finance.yahoo.com/quote/${encodeURIComponent(a.symbol)}/`;
+    const priceStr = a.price != null
+      ? (a.currency === 'USD' ? '$' : '') + a.price.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})
+      : '—';
+
     return `
-    <div style="background:#101922;border:1px solid #137fec44;
-      border-radius:8px;padding:8px 10px;position:relative;overflow:hidden;
-      box-shadow:0 0 6px #137fec18;">
-      <!-- 头部：emoji + 名称 + 外链 -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-        <div style="display:flex;align-items:center;gap:4px;">
-          <span style="font-size:13px;">${a.emoji}</span>
-          <span style="font-size:9px;font-weight:700;color:#e2e8f0;">${a.name}</span>
+    <div class="bg-[#101922] border border-slate-700 rounded-lg p-3 flex flex-col gap-2 hover:border-slate-600 transition-colors">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1.5">
+          <span class="text-sm">${a.emoji}</span>
+          <span class="text-[10px] font-bold text-slate-300">${a.name}</span>
         </div>
         <a href="${tradeUrl}" target="_blank" rel="noopener"
-          style="display:inline-flex;align-items:center;gap:2px;font-size:8px;
-            padding:1px 5px;border-radius:3px;background:#137fec22;color:#60a5fa;
-            text-decoration:none;border:1px solid #137fec33;white-space:nowrap;
-            transition:background .15s;"
-          onmouseover="this.style.background='#137fec44'"
-          onmouseout="this.style.background='#137fec22'">
+          class="text-[8px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white transition-colors">
           Trade ↗
         </a>
       </div>
-      <!-- 价格 -->
-      <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:3px;">
-        ${a.price != null ? (a.currency === 'USD' ? '$' : '') + a.price.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}
-      </div>
-      <!-- 涨跌 + 火花图 -->
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:9px;font-weight:700;color:${color};">
-          ${isUp ? '▲' : '▼'} ${Math.abs(a.change).toFixed(2)}%
-        </span>
+      <div class="text-sm font-bold text-white">${priceStr}</div>
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-bold ${changeColor}">${isUp ? '▲' : '▼'} ${Math.abs(a.change).toFixed(2)}%</span>
         ${spark}
       </div>
-      <!-- AI 原因 -->
-      ${reason ? `<div style="font-size:8px;color:#60a5fa;margin-top:5px;line-height:1.35;
-        display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${reason}</div>` : ''}
+      ${reason ? `<p class="text-[8px] text-blue-400 leading-tight line-clamp-2">${reason}</p>` : ''}
     </div>`;
   }).join('');
 }
