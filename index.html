@@ -935,7 +935,8 @@ function renderEventAxisCanvas(candles, events, activeItem, symbol) {
     while (usedTimes.has(t + offset)) { offset += intervalSec; }
     t = t + offset;
     usedTimes.add(t);
-          time: t,
+    return {
+      time: t,
       position: m.idx % 2 === 0 ? 'aboveBar' : 'belowBar',
       color: m.color,
       shape: m.isActive ? 'arrowDown' : 'circle',
