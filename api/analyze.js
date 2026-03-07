@@ -6,9 +6,53 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { title, description, tokens, lang = 'en', mode, historicalContext } = req.body;
+  const { title, description, tokens, lang = 'en', mode, historicalContext, body } = req.body;
 
   const langInstruction = lang === 'zh' ? 'Respond in Simplified Chinese.' : 'Respond in English.';
+
+  // ===== 持仓对冲分析模式 =====
+  if (mode === 'hedge') {
+    const positionInfo = body || title || '';
+    const hedgePrompt = `You are a professional crypto portfolio risk manager. ${langInstruction}
+
+Analyze the following demo trading positions and provide hedge recommendations:
+
+${positionInfo}
+
+Respond with a JSON object:
+{
+  "hedgeAnalysis": "2-3 sentence risk assessment of current positions, mention directional risk and key price levels",
+  "hedgeSuggestions": [
+    {
+      "action": "Long or Short",
+      "symbol": "token symbol e.g. BTC, ETH, SOL",
+      "size": "suggested size as % of position e.g. 30% of position",
+      "reasoning": "why this hedge helps reduce risk"
+    }
+  ]
+}
+Provide 1-3 hedge suggestions. Focus on offsetting directional exposure, correlation hedges, or reducing drawdown risk.`;
+
+    try {
+      const r = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}` },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [{ role: 'user', content: hedgePrompt }],
+          response_format: { type: 'json_object' },
+          temperature: 0.4,
+          max_tokens: 600,
+        }),
+        signal: AbortSignal.timeout(12000),
+      });
+      const d = await r.json();
+      const parsed = JSON.parse(d.choices[0].message.content);
+      return res.status(200).json(parsed);
+    } catch(e) {
+      return res.status(200).json({ hedgeAnalysis: 'Analysis unavailable.', hedgeSuggestions: [] });
+    }
+  }
 
   // ===== 历史相似度模式 =====
   if (mode === 'historical_similarity' && historicalContext) {

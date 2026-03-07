@@ -474,6 +474,8 @@
         <span class="material-symbols-outlined text-3xl block mb-2 opacity-30">receipt_long</span>
         No open positions — execute a demo trade to get started
       </div>
+      <!-- 对冲分析区 -->
+      <div id="demoHedgeAnalysis" style="display:none;" class="mt-4 p-4 bg-[#101922] border border-primary/20 rounded-xl"></div>
     </div>
 
     <!-- 默认空状态（未登录/未 Demo） -->
@@ -2027,11 +2029,25 @@ function renderDemoPortfolio() {
     // 成交价值
     const filledValue = `$${o.amount.toFixed(2)}`;
 
-    // 触发条件（TP/SL）
-    const trigger = [
-      o.tp ? `TP $${o.tp}` : '',
-      o.sl ? `SL $${o.sl}` : '',
-    ].filter(Boolean).join(' / ') || '--';
+    // 触发条件 — 开仓可编辑，已平仓只读
+    const triggerCell = isOpen
+      ? `<div style="display:flex;flex-direction:column;gap:4px;min-width:130px;">
+          <div style="display:flex;align-items:center;gap:4px;">
+            <span style="font-size:9px;color:#10b981;font-weight:700;width:20px;">TP</span>
+            <input id="tp_${o.id}" type="number" value="${o.tp||''}" placeholder="--"
+              onchange="updateDemoTPSL(${o.id},'tp',this.value)"
+              style="width:70px;padding:2px 6px;background:#0d1520;border:1px solid #10b98140;
+              border-radius:4px;color:#10b981;font-size:10px;font-weight:700;outline:none;"/>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <span style="font-size:9px;color:#ef4444;font-weight:700;width:20px;">SL</span>
+            <input id="sl_${o.id}" type="number" value="${o.sl||''}" placeholder="--"
+              onchange="updateDemoTPSL(${o.id},'sl',this.value)"
+              style="width:70px;padding:2px 6px;background:#0d1520;border:1px solid #ef444440;
+              border-radius:4px;color:#ef4444;font-size:10px;font-weight:700;outline:none;"/>
+          </div>
+        </div>`
+      : `<span style="font-size:10px;color:#475569;">${[o.tp?'TP $'+o.tp:'',o.sl?'SL $'+o.sl:''].filter(Boolean).join(' / ')||'--'}</span>`;
 
     // 未实现PnL（开仓中才有意义）
     let upnl = '--';
@@ -2069,7 +2085,7 @@ function renderDemoPortfolio() {
       ${TD(filledPrice)}
       ${TD(o.amount.toFixed(2))}
       ${TD(filledValue)}
-      ${TD(trigger, '#94a3b8')}
+      <td style="padding:7px 10px;border-bottom:1px solid #0d1520;">${triggerCell}</td>
       ${TD('否', '#475569')}
       ${TD(upnl, upnlColor)}
       ${TD(statusLabel, statusColor)}
@@ -2084,9 +2100,86 @@ function renderDemoPortfolio() {
         <tbody>${rows}</tbody>
       </table>
     </div>`;
+
+  // 对冲分析区（开仓时触发）
+  const openOrders = demoOrders.filter(o => o.status === 'open');
+  const hedgeEl = document.getElementById('demoHedgeAnalysis');
+  if (hedgeEl) {
+    if (openOrders.length > 0) {
+      hedgeEl.style.display = 'block';
+      runDemoHedgeAnalysis(openOrders);
+    } else {
+      hedgeEl.style.display = 'none';
+    }
+  }
 }
 
 
+
+// TP/SL 实时修改
+function updateDemoTPSL(orderId, field, val) {
+  const order = demoOrders.find(o => o.id === orderId);
+  if (!order) return;
+  order[field] = val ? parseFloat(val) : 0;
+}
+
+// Demo 持仓对冲分析（调 DeepSeek）
+async function runDemoHedgeAnalysis(openOrders) {
+  const hedgeEl = document.getElementById('demoHedgeAnalysis');
+  if (!hedgeEl) return;
+  hedgeEl.innerHTML = `
+    <div class="flex items-center gap-2 mb-2">
+      <span class="material-symbols-outlined text-sm text-primary animate-pulse">psychology</span>
+      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">AI Hedge Analysis</span>
+    </div>
+    <div class="text-xs text-slate-500 text-center py-3">Analyzing positions...</div>`;
+
+  const positionSummary = openOrders.map(o =>
+    `${o.dir.toUpperCase()} ${o.token}/USDC, entry $${o.entryPrice}, size $${o.amount}, TP: ${o.tp||'none'}, SL: ${o.sl||'none'}`
+  ).join('\n');
+
+  const currentPrice = parseFloat(document.getElementById('tradePrice')?.dataset?.raw) || 0;
+  const currentToken = document.getElementById('tradeTokenLabel')?.textContent || '';
+
+  try {
+    const resp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        mode: 'hedge',
+        title: `Demo Portfolio Hedge Analysis`,
+        body: `Open positions:\n${positionSummary}\nCurrent ${currentToken} price: $${currentPrice}`,
+      })
+    });
+    const data = await resp.json();
+    const hedge = data.hedgeAnalysis || data.interpretation || '';
+    const suggestions = data.hedgeSuggestions || data.recommendations || [];
+
+    hedgeEl.innerHTML = `
+      <div class="flex items-center gap-2 mb-3">
+        <span class="material-symbols-outlined text-sm text-primary">shield</span>
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">AI Hedge Analysis</span>
+        <span class="ml-auto text-[9px] text-slate-600">${new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</span>
+      </div>
+      ${hedge ? `<p style="font-size:13px;font-family:'Work Sans',sans-serif;color:#cbd5e1;line-height:1.6;margin-bottom:12px;">${hedge}</p>` : ''}
+      ${suggestions.length ? `
+        <div class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-2">Hedge Suggestions</div>
+        <div class="flex flex-col gap-2">
+          ${suggestions.map(s => `
+            <div class="bg-[#0d1520] border border-slate-800 rounded-lg p-3 flex items-start gap-3">
+              <span class="material-symbols-outlined text-sm ${s.action==='Long'?'text-green-400':'text-red-400'} flex-shrink-0">
+                ${s.action==='Long'?'trending_up':'trending_down'}
+              </span>
+              <div>
+                <p class="text-xs font-bold text-white">${s.action} ${s.symbol} <span class="text-[10px] text-slate-500 font-normal">— ${s.size||''}</span></p>
+                <p style="font-size:12px;font-family:'Work Sans',sans-serif;color:#94a3b8;line-height:1.5;">${s.reasoning||s.reason||''}</p>
+              </div>
+            </div>`).join('')}
+        </div>` : ''}`;
+  } catch(e) {
+    hedgeEl.innerHTML = `<div class="text-xs text-slate-600 py-2">Hedge analysis unavailable: ${e.message}</div>`;
+  }
+}
 
 async function connectWallet() {
   if (window.solana && window.solana.isPhantom) {
