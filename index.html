@@ -397,6 +397,7 @@
 </div>
 </div>
 <div class="bg-white dark:bg-[#15202b] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex-shrink-0 mt-6">
+  <!-- 标题行 -->
   <div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a2634] rounded-t-xl flex items-center justify-between">
     <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
       <span class="material-symbols-outlined text-sm text-primary">security</span>
@@ -409,6 +410,9 @@
       <button onclick="loadWalletPortfolio()" id="walletPortfolioBtn" class="flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white transition-colors">
         <span class="material-symbols-outlined text-[12px]">account_balance_wallet</span> Load Wallet
       </button>
+      <button onclick="enableDemoMode();switchPortfolioTab('positions')" id="demoPortfolioBtn" class="flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 hover:bg-yellow-500/30 transition-colors">
+        <span class="material-symbols-outlined text-[12px]">sports_esports</span> Demo
+      </button>
     </div>
   </div>
 
@@ -419,7 +423,19 @@
     <button onclick="loadManualPortfolio()" class="mt-2 px-3 py-1.5 text-xs font-medium bg-primary text-white rounded hover:bg-blue-600 transition-colors">Analyze Holdings</button>
   </div>
 
-  <!-- 总览 -->
+  <!-- Tab 切换（仅 Demo 模式显示） -->
+  <div id="portfolioTabs" style="display:none;" class="flex border-b border-slate-800">
+    <button id="tabAssets" onclick="switchPortfolioTab('assets')"
+      class="flex-1 py-2 text-[11px] font-semibold text-slate-400 border-b-2 border-transparent hover:text-white transition-colors">
+      Assets
+    </button>
+    <button id="tabPositions" onclick="switchPortfolioTab('positions')"
+      class="flex-1 py-2 text-[11px] font-semibold text-yellow-400 border-b-2 border-yellow-400">
+      Positions
+    </button>
+  </div>
+
+  <!-- 总览（实盘模式） -->
   <div id="portfolioSummary" class="hidden px-4 pt-3 pb-1 flex items-center justify-between">
     <div class="flex gap-4">
       <div><span class="text-[10px] text-slate-500 uppercase tracking-wide block">Total Value</span><span id="portfolioTotal" class="text-sm font-bold text-slate-900 dark:text-white">—</span></div>
@@ -428,34 +444,39 @@
     <span class="text-[10px] text-slate-400 flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">info</span> Polymarket hedge suggestions</span>
   </div>
 
-  <!-- 持仓+对冲卡片 -->
+  <!-- 内容区 -->
   <div id="portfolioGrid" class="p-4">
-    <!-- Demo 持仓（Demo 模式激活时显示） -->
-    <div id="demoPortfolioSection" style="display:none;" class="mb-4">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-[10px] font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1">
-          <span style="width:5px;height:5px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
-          Demo Positions
-        </span>
-        <span class="text-[9px] text-slate-600">5s auto-settle</span>
-      </div>
-      <div id="demoPortfolioList" class="flex flex-col gap-2"></div>
+
+    <!-- ===== Assets Tab ===== -->
+    <div id="portfolioTabAssets" style="display:none;">
       <!-- Demo 汇总 -->
-      <div id="demoPortfolioSummary" class="mt-3 grid grid-cols-3 gap-2">
-        <div class="bg-[#101922] border border-slate-800 rounded-lg p-2 text-center">
-          <div class="text-[9px] text-slate-500 mb-1">Balance</div>
-          <div id="demoSumBalance" class="text-sm font-bold text-white">$5000</div>
+      <div class="grid grid-cols-3 gap-2 mb-4">
+        <div class="bg-[#101922] border border-slate-800 rounded-lg p-2.5 text-center">
+          <div class="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Balance</div>
+          <div id="demoSumBalance" class="text-sm font-bold text-white">$5,000.00</div>
         </div>
-        <div class="bg-[#101922] border border-slate-800 rounded-lg p-2 text-center">
-          <div class="text-[9px] text-slate-500 mb-1">Total PnL</div>
+        <div class="bg-[#101922] border border-slate-800 rounded-lg p-2.5 text-center">
+          <div class="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Total PnL</div>
           <div id="demoSumPnL" class="text-sm font-bold text-slate-400">$0.00</div>
         </div>
-        <div class="bg-[#101922] border border-slate-800 rounded-lg p-2 text-center">
-          <div class="text-[9px] text-slate-500 mb-1">Win Rate</div>
+        <div class="bg-[#101922] border border-slate-800 rounded-lg p-2.5 text-center">
+          <div class="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Win Rate</div>
           <div id="demoSumWin" class="text-sm font-bold text-slate-400">--</div>
         </div>
       </div>
+      <div class="text-[10px] text-slate-500 text-center py-3">Demo mode — virtual USDC only. Execute trades to build positions.</div>
     </div>
+
+    <!-- ===== Positions Tab ===== -->
+    <div id="portfolioTabPositions" style="display:none;">
+      <div id="demoPortfolioList" class="flex flex-col gap-2"></div>
+      <div id="demoPortfolioEmpty" class="text-center text-slate-600 text-xs py-8" style="display:none;">
+        <span class="material-symbols-outlined text-3xl block mb-2 opacity-30">receipt_long</span>
+        No open positions — execute a demo trade to get started
+      </div>
+    </div>
+
+    <!-- 默认空状态（未登录/未 Demo） -->
     <div id="portfolioDefaultMsg" class="text-center text-slate-400 text-xs py-6">
       <span class="material-symbols-outlined text-2xl block mb-2 opacity-40">account_balance_wallet</span>
       Connect wallet or add holdings manually to see Polymarket hedge suggestions
@@ -1764,6 +1785,7 @@ let demoBalance = DEMO_INITIAL;
 let demoOrders = [];
 
 function enableDemoMode() {
+  if (demoMode) { switchPortfolioTab('positions'); return; } // 已激活则直接切 tab
   demoMode = true;
   demoBalance = DEMO_INITIAL;
   window._walletUSDCBalance = DEMO_INITIAL;
@@ -1777,13 +1799,13 @@ function enableDemoMode() {
   document.getElementById('demoOrdersWrap').style.display = 'block';
   document.getElementById('executeBtnLabel').textContent = '🎮 Execute Demo Trade';
   document.getElementById('executeBtn').style.background = '#f59e0b';
-  // 显示 Portfolio Demo 区 + 顶部导航状态
-  document.getElementById('demoPortfolioSection').style.display = 'block';
+  // Portfolio 面板 Demo 化
   document.getElementById('portfolioDefaultMsg').style.display = 'none';
+  document.getElementById('portfolioTabs').style.display = 'flex';
   document.getElementById('navDemoStatus').style.display = 'flex';
+  switchPortfolioTab('positions');
   updateDemoBalanceUI();
   updateRiskCalc();
-  renderDemoPortfolio();
 }
 
 function updateDemoBalanceUI() {
@@ -1935,37 +1957,98 @@ function renderDemoOrders() {
   }).join('');
 }
 
+function switchPortfolioTab(tab) {
+  const tabs = ['assets', 'positions'];
+  tabs.forEach(t => {
+    const el = document.getElementById('portfolioTab' + t.charAt(0).toUpperCase() + t.slice(1));
+    const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (!el || !btn) return;
+    const active = t === tab;
+    el.style.display = active ? 'block' : 'none';
+    btn.classList.toggle('text-yellow-400', active);
+    btn.classList.toggle('border-yellow-400', active);
+    btn.classList.toggle('text-slate-400', !active);
+    btn.classList.toggle('border-transparent', !active);
+  });
+  if (tab === 'positions') renderDemoPortfolio();
+}
+
 function renderDemoPortfolio() {
-  const el = document.getElementById('demoPortfolioList');
-  if (!el) return;
+  const list = document.getElementById('demoPortfolioList');
+  const empty = document.getElementById('demoPortfolioEmpty');
+  if (!list) return;
+
+  const open = demoOrders.filter(o => o.status === 'open');
+  const closed = demoOrders.filter(o => o.status === 'closed');
+
   if (!demoOrders.length) {
-    el.innerHTML = '<div style="font-size:11px;color:#475569;text-align:center;padding:12px;">No positions yet — execute a demo trade to see them here</div>';
+    list.innerHTML = '';
+    if (empty) empty.style.display = 'block';
     return;
   }
-  el.innerHTML = demoOrders.map(o => {
+  if (empty) empty.style.display = 'none';
+
+  const makeCard = (o) => {
     const isOpen = o.status === 'open';
-    const pc = (o.pnl||0) >= 0 ? '#10b981' : '#ef4444';
     const dc = o.dir === 'long' ? '#10b981' : '#ef4444';
-    const pnlPct = o.entryPrice > 0 ? ((o.pnl||0) / o.amount * 100).toFixed(2) : '0.00';
-    return `<div class="bg-[#101922] border border-slate-800 rounded-lg p-3 flex items-center justify-between gap-3">
-      <div class="flex items-center gap-2 min-w-0">
-        <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:${dc}22;color:${dc};">${o.dir.toUpperCase()}</span>
-        <div class="min-w-0">
-          <p class="text-xs font-bold text-white">${o.token}</p>
-          <p class="text-[9px] text-slate-500">Entry $${o.entryPrice.toLocaleString()} · $${o.amount.toFixed(0)} USDC</p>
-        </div>
-      </div>
-      <div class="text-right flex-shrink-0">
-        ${isOpen
-          ? `<p class="text-[10px] font-bold text-yellow-400">● OPEN</p>
-             <button onclick="closeDemoOrder(${o.id})" style="font-size:9px;padding:2px 8px;background:#ef444415;color:#ef4444;border:1px solid #ef444430;border-radius:4px;cursor:pointer;margin-top:2px;">Close</button>`
-          : `<p class="text-sm font-bold" style="color:${pc}">${(o.pnl>=0?'+':'') + '$' + (o.pnl||0).toFixed(2)}</p>
-             <p class="text-[9px]" style="color:${pc}">${pnlPct}% · ${o.closeReason}</p>`
-        }
-      </div>
-    </div>`;
-  }).join('');
+    const dirLabel = o.dir === 'long' ? '▲ LONG' : '▼ SHORT';
+    // 计算字段
+    const entryPrice = o.entryPrice;
+    const currentPrice = parseFloat(document.getElementById('tradePrice')?.textContent?.replace(/[^0-9.]/g,'')) || entryPrice;
+    const posSize = o.amount; // USDC margin
+    const unrealizedPnL = isOpen
+      ? (o.dir === 'long' ? (currentPrice - entryPrice) / entryPrice : (entryPrice - currentPrice) / entryPrice) * posSize
+      : (o.pnl || 0);
+    const pnlPct = posSize > 0 ? (unrealizedPnL / posSize * 100) : 0;
+    const liqPrice = o.dir === 'long'
+      ? (entryPrice * 0.9).toFixed(2)   // 模拟 10x 杠杆强平
+      : (entryPrice * 1.1).toFixed(2);
+    const leverage = 1; // demo 无杠杆
+    const pc = unrealizedPnL >= 0 ? '#10b981' : '#ef4444';
+
+    return '<div class="bg-[#101922] border border-slate-800 rounded-xl p-3 mb-2">'
+      // 顶行：方向 + Token + 状态
+      + '<div class="flex items-center justify-between mb-2.5">'
+      + '<div class="flex items-center gap-2">'
+      + '<span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:' + dc + '22;color:' + dc + ';">' + dirLabel + '</span>'
+      + '<span class="text-sm font-bold text-white">' + o.token + '/USDC</span>'
+      + '<span class="text-[9px] text-slate-500">Spot · 1x</span>'
+      + '</div>'
+      + '<span style="font-size:10px;font-weight:700;color:' + (isOpen ? '#f59e0b' : '#64748b') + ';">'
+      + (isOpen ? '● OPEN' : '● CLOSED') + '</span>'
+      + '</div>'
+      // 字段网格（6格，对应交易所标准字段）
+      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;">'
+      + field('Entry Price', '$' + entryPrice.toLocaleString())
+      + field('Mark Price', '$' + currentPrice.toLocaleString())
+      + field('Position Size', '$' + posSize.toFixed(2))
+      + field('Unrealized PnL', (unrealizedPnL >= 0 ? '+' : '') + '$' + unrealizedPnL.toFixed(2) + ' (' + (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(2) + '%)', unrealizedPnL >= 0 ? '#10b981' : '#ef4444')
+      + field('Liq. Price', '$' + liqPrice, '#f59e0b')
+      + field('Leverage', leverage + 'x')
+      + '</div>'
+      // TP / SL 行
+      + (o.tp || o.sl ? '<div class="flex gap-3 mb-2.5 text-[10px]">'
+        + (o.tp ? '<span class="px-2 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">TP: $' + o.tp + '</span>' : '')
+        + (o.sl ? '<span class="px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">SL: $' + o.sl + '</span>' : '')
+        + '</div>' : '')
+      // 操作按钮
+      + '<div class="flex gap-2">'
+      + (isOpen ? '<button onclick="closeDemoOrder(' + o.id + ')" style="flex:1;padding:5px;font-size:11px;font-weight:600;background:#ef444415;color:#ef4444;border:1px solid #ef444430;border-radius:6px;cursor:pointer;">Market Close</button>'
+                : '<span style="flex:1;padding:5px;font-size:10px;color:#475569;text-align:center;">' + o.closeReason + ' · ' + o.time + '</span>')
+      + '</div>'
+      + '</div>';
+  };
+
+  const field = (label, val, color) =>
+    '<div style="background:#0d1520;border-radius:5px;padding:6px 8px;">'
+    + '<div style="font-size:8px;color:#475569;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">' + label + '</div>'
+    + '<div style="font-size:11px;font-weight:700;color:' + (color || '#e2e8f0') + ';">' + val + '</div>'
+    + '</div>';
+
+  // 开仓在前，已平仓在后
+  list.innerHTML = [...open, ...closed].map(makeCard).join('');
 }
+
 
 async function connectWallet() {
   if (window.solana && window.solana.isPhantom) {
