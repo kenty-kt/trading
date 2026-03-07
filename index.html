@@ -1760,28 +1760,53 @@ function updateDemoBalanceUI() {
 }
 
 function executeDemoTrade() {
-  const amount = parseFloat(document.getElementById('tradeAmount').value) || 0;
-  const token = document.getElementById('tradeTokenLabel').textContent;
-  const entryPrice = parseFloat(document.getElementById('tradePrice').textContent.replace(/[^0-9.]/g,'')) || 0;
-  const dir = currentTradeDir || 'long';
-  const tp = parseFloat(document.getElementById('tpInput').value) || 0;
-  const sl = parseFloat(document.getElementById('slInput').value) || 0;
-  if (amount <= 0) { alert('Enter a valid amount'); return; }
-  if (amount > demoBalance) { alert('Insufficient demo balance ($' + demoBalance.toFixed(2) + ' USDC)'); return; }
-  if (entryPrice <= 0) { alert('No entry price'); return; }
-  demoBalance -= amount;
-  window._walletUSDCBalance = demoBalance;
-  const order = { id:Date.now(), token, dir, amount, entryPrice, qty:amount/entryPrice, tp, sl, status:'open', pnl:0, time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) };
-  demoOrders.unshift(order);
-  renderDemoOrders();
-  updateDemoBalanceUI();
-  updateRiskCalc();
-  setTimeout(() => simulatePnL(order.id), 5000);
-  const lbl = document.getElementById('executeBtnLabel');
-  const btn = document.getElementById('executeBtn');
-  lbl.textContent = '✓ Demo Order Placed!';
-  btn.style.background = '#10b981';
-  setTimeout(() => { lbl.textContent = '🎮 Execute Demo Trade'; btn.style.background = '#f59e0b'; }, 2500);
+  try {
+    const amount = parseFloat(document.getElementById('tradeAmount').value) || 0;
+    const token = document.getElementById('tradeTokenLabel').textContent || 'BTC';
+    const rawPrice = document.getElementById('tradePrice').textContent || '0';
+    const entryPrice = parseFloat(rawPrice.replace(/[^0-9.]/g,'')) || 0;
+    const dir = tradeDir || 'long';
+    const tp = parseFloat(document.getElementById('tpInput').value) || 0;
+    const sl = parseFloat(document.getElementById('slInput').value) || 0;
+
+    if (amount <= 0) { alert('Enter a valid amount'); return; }
+    if (amount > demoBalance) { alert('Insufficient demo balance ($' + demoBalance.toFixed(2) + ' USDC)'); return; }
+    // entryPrice 0 时仍允许继续（用 1 代替避免除零）
+    const price = entryPrice > 0 ? entryPrice : 1;
+
+    demoBalance -= amount;
+    window._walletUSDCBalance = demoBalance;
+
+    const order = {
+      id: Date.now(),
+      token, dir, amount,
+      entryPrice: price,
+      qty: amount / price,
+      tp, sl,
+      status: 'open',
+      pnl: 0,
+      time: new Date().toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'}),
+    };
+    demoOrders.unshift(order);
+    renderDemoOrders();
+    updateDemoBalanceUI();
+    updateRiskCalc();
+
+    // 5秒后自动结算
+    setTimeout(() => simulatePnL(order.id), 5000);
+
+    const lbl = document.getElementById('executeBtnLabel');
+    const btn = document.getElementById('executeBtn');
+    if (lbl) lbl.textContent = '✓ Demo Order Placed!';
+    if (btn) btn.style.background = '#10b981';
+    setTimeout(() => {
+      if (lbl) lbl.textContent = '🎮 Execute Demo Trade';
+      if (btn) btn.style.background = '#f59e0b';
+    }, 2500);
+  } catch(e) {
+    alert('Demo trade error: ' + e.message);
+    console.error(e);
+  }
 }
 
 function simulatePnL(orderId) {
@@ -1897,7 +1922,7 @@ function updateRiskCalc() {
   const entryPrice = parseFloat(document.getElementById('tradePrice')?.textContent?.replace(/[^0-9.]/g,'')) || 0;
   const sl = parseFloat(document.getElementById('slInput')?.value) || 0;
   const tp = parseFloat(document.getElementById('tpInput')?.value) || 0;
-  const dir = currentTradeDir || 'long';
+  const dir = tradeDir || 'long';
 
   // 钱包余额（USDC）
   const walletText = document.getElementById('walletAddr')?.textContent || '';
@@ -2056,7 +2081,7 @@ async function executeSwap() {
 function applyRiskPosition() {
   const entryPrice = parseFloat(document.getElementById('tradePrice')?.textContent?.replace(/[^0-9.]/g,'')) || 0;
   const sl = parseFloat(document.getElementById('slInput')?.value) || 0;
-  const dir = currentTradeDir || 'long';
+  const dir = tradeDir || 'long';
   const balance = window._walletUSDCBalance || parseFloat(document.getElementById('tradeAmount')?.value) * 10 || 1000;
   const riskAmt = balance * _riskPct / 100;
   const slDistPct = entryPrice > 0 && sl > 0
