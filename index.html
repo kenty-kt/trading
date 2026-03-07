@@ -1902,9 +1902,10 @@ function setSlippage(pct) {
     b.style.background = b.textContent === pct + '%' ? '#137fec' : '#1e293b';
     b.style.color = b.textContent === pct + '%' ? '#fff' : '#94a3b8';
   });
+}
 
 // ===== 风险计算器 =====
-let _riskPct = 1; // 默认风险 1%
+let _riskPct = 1;
 
 function setRiskPct(pct) {
   _riskPct = pct;
@@ -1978,7 +1979,6 @@ function updateRiskCalc() {
     const btn = document.getElementById('rc_applyBtn');
     if (btn) btn.style.display = 'inline-flex';
   }
-}
 }
 
 let quoteTimeout = null;
