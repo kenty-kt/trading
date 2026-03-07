@@ -99,6 +99,15 @@
 </div>
 </label>
 <div class="flex gap-2">
+<div class="flex gap-2">
+<!-- Demo 状态指示器（默认隐藏，Demo 激活后显示） -->
+<div id="navDemoStatus" style="display:none;" class="flex items-center gap-2 px-3 h-10 rounded-lg border border-yellow-500/30 bg-yellow-500/10">
+  <span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
+  <span style="font-size:10px;font-weight:700;color:#f59e0b;letter-spacing:.04em;">DEMO</span>
+  <span style="width:1px;height:14px;background:#f59e0b33;"></span>
+  <span style="font-size:11px;color:#e2e8f0;font-weight:600;">$<span id="navDemoBalance">5000.00</span></span>
+  <span id="navDemoPnL" style="font-size:10px;font-weight:700;display:none;"></span>
+</div>
 <button onclick="toggleLang()" id="langBtn" class="flex items-center justify-center rounded-lg h-10 px-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors gap-1" title="Switch Language">
   <span class="material-symbols-outlined text-lg">translate</span>
   <span id="langLabel" style="font-size:11px;font-weight:700;letter-spacing:0.05em;">EN</span>
@@ -421,7 +430,33 @@
 
   <!-- 持仓+对冲卡片 -->
   <div id="portfolioGrid" class="p-4">
-    <div class="text-center text-slate-400 text-xs py-6">
+    <!-- Demo 持仓（Demo 模式激活时显示） -->
+    <div id="demoPortfolioSection" style="display:none;" class="mb-4">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-[10px] font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1">
+          <span style="width:5px;height:5px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
+          Demo Positions
+        </span>
+        <span class="text-[9px] text-slate-600">5s auto-settle</span>
+      </div>
+      <div id="demoPortfolioList" class="flex flex-col gap-2"></div>
+      <!-- Demo 汇总 -->
+      <div id="demoPortfolioSummary" class="mt-3 grid grid-cols-3 gap-2">
+        <div class="bg-[#101922] border border-slate-800 rounded-lg p-2 text-center">
+          <div class="text-[9px] text-slate-500 mb-1">Balance</div>
+          <div id="demoSumBalance" class="text-sm font-bold text-white">$5000</div>
+        </div>
+        <div class="bg-[#101922] border border-slate-800 rounded-lg p-2 text-center">
+          <div class="text-[9px] text-slate-500 mb-1">Total PnL</div>
+          <div id="demoSumPnL" class="text-sm font-bold text-slate-400">$0.00</div>
+        </div>
+        <div class="bg-[#101922] border border-slate-800 rounded-lg p-2 text-center">
+          <div class="text-[9px] text-slate-500 mb-1">Win Rate</div>
+          <div id="demoSumWin" class="text-sm font-bold text-slate-400">--</div>
+        </div>
+      </div>
+    </div>
+    <div id="portfolioDefaultMsg" class="text-center text-slate-400 text-xs py-6">
       <span class="material-symbols-outlined text-2xl block mb-2 opacity-40">account_balance_wallet</span>
       Connect wallet or add holdings manually to see Polymarket hedge suggestions
     </div>
@@ -1742,13 +1777,20 @@ function enableDemoMode() {
   document.getElementById('demoOrdersWrap').style.display = 'block';
   document.getElementById('executeBtnLabel').textContent = '🎮 Execute Demo Trade';
   document.getElementById('executeBtn').style.background = '#f59e0b';
+  // 显示 Portfolio Demo 区 + 顶部导航状态
+  document.getElementById('demoPortfolioSection').style.display = 'block';
+  document.getElementById('portfolioDefaultMsg').style.display = 'none';
+  document.getElementById('navDemoStatus').style.display = 'flex';
   updateDemoBalanceUI();
   updateRiskCalc();
+  renderDemoPortfolio();
 }
 
 function updateDemoBalanceUI() {
   document.getElementById('balanceUSDC').textContent = demoBalance.toFixed(2);
   const totalPnL = demoOrders.reduce((s,o) => s + (o.pnl||0), 0);
+
+  // 弹窗内 PnL
   const pnlEl = document.getElementById('demoPnL');
   if (pnlEl && demoOrders.length) {
     pnlEl.style.display = 'inline-block';
@@ -1757,6 +1799,35 @@ function updateDemoBalanceUI() {
     pnlEl.style.border = '1px solid ' + (totalPnL>=0 ? '#10b98144' : '#ef444444');
     pnlEl.style.color = totalPnL>=0 ? '#10b981' : '#ef4444';
   }
+
+  // 顶部导航栏
+  const navBal = document.getElementById('navDemoBalance');
+  if (navBal) navBal.textContent = demoBalance.toFixed(2);
+  const navPnL = document.getElementById('navDemoPnL');
+  if (navPnL && demoOrders.length) {
+    navPnL.style.display = 'inline';
+    navPnL.textContent = (totalPnL>=0?'+':'') + '$' + totalPnL.toFixed(2);
+    navPnL.style.color = totalPnL>=0 ? '#10b981' : '#ef4444';
+  }
+
+  // Portfolio 汇总
+  const closed = demoOrders.filter(o => o.status === 'closed');
+  const wins = closed.filter(o => o.pnl > 0).length;
+  const winRate = closed.length ? Math.round(wins/closed.length*100) + '%' : '--';
+  const sumBal = document.getElementById('demoSumBalance');
+  const sumPnL = document.getElementById('demoSumPnL');
+  const sumWin = document.getElementById('demoSumWin');
+  if (sumBal) sumBal.textContent = '$' + demoBalance.toFixed(2);
+  if (sumPnL) {
+    sumPnL.textContent = (totalPnL>=0?'+':'') + '$' + totalPnL.toFixed(2);
+    sumPnL.style.color = totalPnL>=0 ? '#10b981' : '#ef4444';
+  }
+  if (sumWin) {
+    sumWin.textContent = winRate;
+    sumWin.style.color = wins > 0 ? '#10b981' : '#94a3b8';
+  }
+
+  renderDemoPortfolio();
 }
 
 function executeDemoTrade() {
@@ -1861,6 +1932,38 @@ function renderDemoOrders() {
       + (o.sl ? '<span>SL $' + o.sl + '</span>' : '')
       + (o.closePrice ? '<span>→ $' + o.closePrice.toLocaleString() + '</span>' : '')
       + '<span>' + o.time + '</span></div></div>';
+  }).join('');
+}
+
+function renderDemoPortfolio() {
+  const el = document.getElementById('demoPortfolioList');
+  if (!el) return;
+  if (!demoOrders.length) {
+    el.innerHTML = '<div style="font-size:11px;color:#475569;text-align:center;padding:12px;">No positions yet — execute a demo trade to see them here</div>';
+    return;
+  }
+  el.innerHTML = demoOrders.map(o => {
+    const isOpen = o.status === 'open';
+    const pc = (o.pnl||0) >= 0 ? '#10b981' : '#ef4444';
+    const dc = o.dir === 'long' ? '#10b981' : '#ef4444';
+    const pnlPct = o.entryPrice > 0 ? ((o.pnl||0) / o.amount * 100).toFixed(2) : '0.00';
+    return `<div class="bg-[#101922] border border-slate-800 rounded-lg p-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2 min-w-0">
+        <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:${dc}22;color:${dc};">${o.dir.toUpperCase()}</span>
+        <div class="min-w-0">
+          <p class="text-xs font-bold text-white">${o.token}</p>
+          <p class="text-[9px] text-slate-500">Entry $${o.entryPrice.toLocaleString()} · $${o.amount.toFixed(0)} USDC</p>
+        </div>
+      </div>
+      <div class="text-right flex-shrink-0">
+        ${isOpen
+          ? `<p class="text-[10px] font-bold text-yellow-400">● OPEN</p>
+             <button onclick="closeDemoOrder(${o.id})" style="font-size:9px;padding:2px 8px;background:#ef444415;color:#ef4444;border:1px solid #ef444430;border-radius:4px;cursor:pointer;margin-top:2px;">Close</button>`
+          : `<p class="text-sm font-bold" style="color:${pc}">${(o.pnl>=0?'+':'') + '$' + (o.pnl||0).toFixed(2)}</p>
+             <p class="text-[9px]" style="color:${pc}">${pnlPct}% · ${o.closeReason}</p>`
+        }
+      </div>
+    </div>`;
   }).join('');
 }
 
