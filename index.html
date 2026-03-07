@@ -1858,8 +1858,12 @@ function executeDemoTrade() {
   try {
     const amount = parseFloat(document.getElementById('tradeAmount').value) || 0;
     const token = document.getElementById('tradeTokenLabel').textContent || 'BTC';
-    const rawPrice = document.getElementById('tradePrice');
-    const entryPrice = parseFloat(rawPrice?.dataset?.raw) || parseFloat(rawPrice?.textContent?.replace(/[^0-9.]/g,'')) || 0;
+    // 优先从 currentTradeRec._parsedPrice 读取（避免 DOM 解析问题）
+    const entryPrice = (currentTradeRec && currentTradeRec._parsedPrice > 0)
+      ? currentTradeRec._parsedPrice
+      : (parseFloat(document.getElementById('tradePrice')?.dataset?.raw)
+         || parseFloat(document.getElementById('tradePrice')?.textContent?.replace(/[^0-9.]/g,''))
+         || 0);
     const dir = tradeDir || 'long';
     const tp = parseFloat(document.getElementById('tpInput').value) || 0;
     const sl = parseFloat(document.getElementById('slInput').value) || 0;
@@ -2029,20 +2033,20 @@ function renderDemoPortfolio() {
     // 成交价值
     const filledValue = `$${o.amount.toFixed(2)}`;
 
-    // 触发条件 — 开仓可编辑，已平仓只读
+    // 触发条件 — 开仓可编辑（data-* 属性，用事件委托）
     const triggerCell = isOpen
       ? `<div style="display:flex;flex-direction:column;gap:4px;min-width:130px;">
           <div style="display:flex;align-items:center;gap:4px;">
             <span style="font-size:9px;color:#10b981;font-weight:700;width:20px;">TP</span>
-            <input id="tp_${o.id}" type="number" value="${o.tp||''}" placeholder="--"
-              onchange="updateDemoTPSL(${o.id},'tp',this.value)"
+            <input class="demo-tpsl-input" data-orderid="${o.id}" data-field="tp"
+              type="number" value="${o.tp||''}" placeholder="--"
               style="width:70px;padding:2px 6px;background:#0d1520;border:1px solid #10b98140;
               border-radius:4px;color:#10b981;font-size:10px;font-weight:700;outline:none;"/>
           </div>
           <div style="display:flex;align-items:center;gap:4px;">
             <span style="font-size:9px;color:#ef4444;font-weight:700;width:20px;">SL</span>
-            <input id="sl_${o.id}" type="number" value="${o.sl||''}" placeholder="--"
-              onchange="updateDemoTPSL(${o.id},'sl',this.value)"
+            <input class="demo-tpsl-input" data-orderid="${o.id}" data-field="sl"
+              type="number" value="${o.sl||''}" placeholder="--"
               style="width:70px;padding:2px 6px;background:#0d1520;border:1px solid #ef444440;
               border-radius:4px;color:#ef4444;font-size:10px;font-weight:700;outline:none;"/>
           </div>
@@ -2069,10 +2073,10 @@ function renderDemoPortfolio() {
     const statusLabel = isOpen ? '● 进行中' : (reasonMap[o.closeReason] || '已完成');
     const statusColor = isOpen ? '#f59e0b' : '#10b981';
 
-    // 操作列
+    // 操作列（用 data-orderid 事件委托，不用 inline onclick）
     const pnlColor2 = (o.pnl||0) >= 0 ? '#10b981' : '#ef4444';
     const action = isOpen
-      ? `<button onclick="closeDemoOrder(${o.id})"
+      ? `<button class="demo-close-btn" data-orderid="${o.id}"
            style="font-size:10px;padding:3px 10px;background:#ef444415;
            color:#ef4444;border:1px solid #ef444430;border-radius:4px;cursor:pointer;
            font-weight:600;">市价平仓</button>`
@@ -2413,13 +2417,14 @@ function applyRiskPosition() {
 
 function openTradeModal(rec) {
   currentTradeRec = rec;
+  // 解析并存储原始价格数字（避免带逗号字符串问题）
+  const rawPrice = rec.spotPrice ? parseFloat(String(rec.spotPrice).replace(/,/g,'')) : 0;
+  currentTradeRec._parsedPrice = rawPrice;
   document.getElementById('tradeModal').style.display = 'block';
   document.getElementById('tradeTokenLabel').textContent = rec.symbol;
-  // 存原始数字到 dataset，避免 parseFloat 解析带逗号字符串出错
-  const rawPrice = rec.spotPrice ? parseFloat(String(rec.spotPrice).replace(/,/g,'')) : 0;
   const priceEl = document.getElementById('tradePrice');
   priceEl.textContent = rawPrice > 0 ? '$' + rawPrice.toLocaleString() : '--';
-  priceEl.dataset.raw = rawPrice;
+  priceEl.dataset.raw = String(rawPrice);
   document.getElementById('tpInput').value = rec.tp || '';
   document.getElementById('slInput').value = rec.sl || '';
   setTradeDir(rec.action === 'Long' ? 'long' : 'short');
@@ -2828,5 +2833,23 @@ async function renderPortfolio(holdings, totalValue) {
 function closeTradeModal(e) {
   if (e.target.id === 'tradeModal') document.getElementById('tradeModal').style.display = 'none';
 }
+
+// ===== 事件委托：Demo 持仓表格按钮/输入框 =====
+document.addEventListener('click', function(e) {
+  const closeBtn = e.target.closest('.demo-close-btn');
+  if (closeBtn) {
+    const id = parseInt(closeBtn.dataset.orderid);
+    closeDemoOrder(id);
+  }
+});
+
+document.addEventListener('change', function(e) {
+  const input = e.target.closest('.demo-tpsl-input');
+  if (input) {
+    const id = parseInt(input.dataset.orderid);
+    const field = input.dataset.field;
+    updateDemoTPSL(id, field, input.value);
+  }
+});
 </script>
 </body></html>
