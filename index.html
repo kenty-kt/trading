@@ -1978,9 +1978,6 @@ function renderDemoPortfolio() {
   const empty = document.getElementById('demoPortfolioEmpty');
   if (!list) return;
 
-  const open = demoOrders.filter(o => o.status === 'open');
-  const closed = demoOrders.filter(o => o.status === 'closed');
-
   if (!demoOrders.length) {
     list.innerHTML = '';
     if (empty) empty.style.display = 'block';
@@ -1988,66 +1985,104 @@ function renderDemoPortfolio() {
   }
   if (empty) empty.style.display = 'none';
 
-  const makeCard = (o) => {
+  const currentPrice = parseFloat(
+    document.getElementById('tradePrice')?.textContent?.replace(/[^0-9.]/g,'')
+  ) || 0;
+
+  // 表头
+  const TH = (label, extra) =>
+    `<th style="padding:6px 10px;font-size:9px;font-weight:700;color:#475569;
+       text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;
+       border-bottom:1px solid #1e293b;text-align:left;${extra||''}">${label}</th>`;
+
+  const header = `<tr>
+    ${TH('时间')}
+    ${TH('交易对')}
+    ${TH('买卖方向')}
+    ${TH('成交价格')}
+    ${TH('数量(USDC)')}
+    ${TH('成交价值')}
+    ${TH('触发条件')}
+    ${TH('只减仓')}
+    ${TH('未实现PnL')}
+    ${TH('状态')}
+    ${TH('操作')}
+  </tr>`;
+
+  const TD = (val, color, extra) =>
+    `<td style="padding:7px 10px;font-size:11px;font-weight:600;
+       color:${color||'#cbd5e1'};white-space:nowrap;
+       border-bottom:1px solid #0d1520;${extra||''}">${val}</td>`;
+
+  const rows = [...demoOrders].map(o => {
     const isOpen = o.status === 'open';
     const dc = o.dir === 'long' ? '#10b981' : '#ef4444';
-    const dirLabel = o.dir === 'long' ? '▲ LONG' : '▼ SHORT';
-    // 计算字段
-    const entryPrice = o.entryPrice;
-    const currentPrice = parseFloat(document.getElementById('tradePrice')?.textContent?.replace(/[^0-9.]/g,'')) || entryPrice;
-    const posSize = o.amount; // USDC margin
-    const unrealizedPnL = isOpen
-      ? (o.dir === 'long' ? (currentPrice - entryPrice) / entryPrice : (entryPrice - currentPrice) / entryPrice) * posSize
-      : (o.pnl || 0);
-    const pnlPct = posSize > 0 ? (unrealizedPnL / posSize * 100) : 0;
-    const liqPrice = o.dir === 'long'
-      ? (entryPrice * 0.9).toFixed(2)   // 模拟 10x 杠杆强平
-      : (entryPrice * 1.1).toFixed(2);
-    const leverage = 1; // demo 无杠杆
-    const pc = unrealizedPnL >= 0 ? '#10b981' : '#ef4444';
+    const dirLabel = o.dir === 'long' ? '买入/做多' : '卖出/做空';
 
-    return '<div class="bg-[#101922] border border-slate-800 rounded-xl p-3 mb-2">'
-      // 顶行：方向 + Token + 状态
-      + '<div class="flex items-center justify-between mb-2.5">'
-      + '<div class="flex items-center gap-2">'
-      + '<span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:' + dc + '22;color:' + dc + ';">' + dirLabel + '</span>'
-      + '<span class="text-sm font-bold text-white">' + o.token + '/USDC</span>'
-      + '<span class="text-[9px] text-slate-500">Spot · 1x</span>'
-      + '</div>'
-      + '<span style="font-size:10px;font-weight:700;color:' + (isOpen ? '#f59e0b' : '#64748b') + ';">'
-      + (isOpen ? '● OPEN' : '● CLOSED') + '</span>'
-      + '</div>'
-      // 字段网格（6格，对应交易所标准字段）
-      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;">'
-      + field('Entry Price', '$' + entryPrice.toLocaleString())
-      + field('Mark Price', '$' + currentPrice.toLocaleString())
-      + field('Position Size', '$' + posSize.toFixed(2))
-      + field('Unrealized PnL', (unrealizedPnL >= 0 ? '+' : '') + '$' + unrealizedPnL.toFixed(2) + ' (' + (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(2) + '%)', unrealizedPnL >= 0 ? '#10b981' : '#ef4444')
-      + field('Liq. Price', '$' + liqPrice, '#f59e0b')
-      + field('Leverage', leverage + 'x')
-      + '</div>'
-      // TP / SL 行
-      + (o.tp || o.sl ? '<div class="flex gap-3 mb-2.5 text-[10px]">'
-        + (o.tp ? '<span class="px-2 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">TP: $' + o.tp + '</span>' : '')
-        + (o.sl ? '<span class="px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">SL: $' + o.sl + '</span>' : '')
-        + '</div>' : '')
-      // 操作按钮
-      + '<div class="flex gap-2">'
-      + (isOpen ? '<button onclick="closeDemoOrder(' + o.id + ')" style="flex:1;padding:5px;font-size:11px;font-weight:600;background:#ef444415;color:#ef4444;border:1px solid #ef444430;border-radius:6px;cursor:pointer;">Market Close</button>'
-                : '<span style="flex:1;padding:5px;font-size:10px;color:#475569;text-align:center;">' + o.closeReason + ' · ' + o.time + '</span>')
-      + '</div>'
-      + '</div>';
-  };
+    // 成交价格
+    const filledPrice = o.closePrice
+      ? `$${Number(o.closePrice).toLocaleString()}`
+      : `$${Number(o.entryPrice).toLocaleString()}`;
 
-  const field = (label, val, color) =>
-    '<div style="background:#0d1520;border-radius:5px;padding:6px 8px;">'
-    + '<div style="font-size:8px;color:#475569;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">' + label + '</div>'
-    + '<div style="font-size:11px;font-weight:700;color:' + (color || '#e2e8f0') + ';">' + val + '</div>'
-    + '</div>';
+    // 成交价值
+    const filledValue = `$${o.amount.toFixed(2)}`;
 
-  // 开仓在前，已平仓在后
-  list.innerHTML = [...open, ...closed].map(makeCard).join('');
+    // 触发条件（TP/SL）
+    const trigger = [
+      o.tp ? `TP $${o.tp}` : '',
+      o.sl ? `SL $${o.sl}` : '',
+    ].filter(Boolean).join(' / ') || '--';
+
+    // 未实现PnL（开仓中才有意义）
+    let upnl = '--';
+    let upnlColor = '#64748b';
+    if (isOpen && currentPrice > 0) {
+      const rawPnL = o.dir === 'long'
+        ? (currentPrice - o.entryPrice) / o.entryPrice * o.amount
+        : (o.entryPrice - currentPrice) / o.entryPrice * o.amount;
+      upnl = (rawPnL >= 0 ? '+' : '') + '$' + rawPnL.toFixed(2);
+      upnlColor = rawPnL >= 0 ? '#10b981' : '#ef4444';
+    } else if (!isOpen) {
+      upnl = (o.pnl >= 0 ? '+' : '') + '$' + (o.pnl||0).toFixed(2);
+      upnlColor = (o.pnl||0) >= 0 ? '#10b981' : '#ef4444';
+    }
+
+    // 状态
+    const statusLabel = isOpen ? '进行中' : (o.closeReason || '已完成');
+    const statusColor = isOpen ? '#f59e0b' : '#475569';
+
+    // 操作
+    const action = isOpen
+      ? `<button onclick="closeDemoOrder(${o.id})"
+           style="font-size:10px;padding:3px 10px;background:#ef444415;
+           color:#ef4444;border:1px solid #ef444430;border-radius:4px;cursor:pointer;
+           font-weight:600;">市价平仓</button>`
+      : `<span style="font-size:10px;color:#334155;">${o.time}</span>`;
+
+    return `<tr style="background:${isOpen ? '#0d1520' : 'transparent'}">
+      ${TD(o.time)}
+      ${TD(o.token + '/USDC')}
+      ${TD(dirLabel, dc)}
+      ${TD(filledPrice)}
+      ${TD(o.amount.toFixed(2))}
+      ${TD(filledValue)}
+      ${TD(trigger, '#94a3b8')}
+      ${TD('否', '#475569')}
+      ${TD(upnl, upnlColor)}
+      ${TD(statusLabel, statusColor)}
+      <td style="padding:7px 10px;border-bottom:1px solid #0d1520;">${action}</td>
+    </tr>`;
+  }).join('');
+
+  list.innerHTML = `
+    <div style="overflow-x:auto;border-radius:8px;border:1px solid #1e293b;">
+      <table style="width:100%;border-collapse:collapse;min-width:800px;">
+        <thead style="background:#0d1520;">${header}</thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
 }
+
 
 
 async function connectWallet() {
