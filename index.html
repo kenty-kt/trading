@@ -1613,6 +1613,9 @@ async function loadNews() {
 }
 
 loadNews();
+
+// 每30秒检查 TP/SL 触发
+setInterval(() => { if (demoMode) checkTPSLTriggers(); }, 30000);
 // watchlist 由 AI 分析后动态加载
 // 不自动刷新，手动点击新闻加载
 </script>
@@ -1789,9 +1792,14 @@ let demoOrders = [];
 function enableDemoMode() {
   if (demoMode) { switchPortfolioTab('positions'); return; } // 已激活则直接切 tab
   demoMode = true;
-  demoBalance = DEMO_INITIAL;
-  window._walletUSDCBalance = DEMO_INITIAL;
-  demoOrders = [];
+  // 先尝试从 localStorage 恢复
+  loadDemoState();
+  // 如果没有存档数据，用初始值
+  if (!demoOrders.length && demoBalance === DEMO_INITIAL) {
+    demoBalance = DEMO_INITIAL;
+    window._walletUSDCBalance = DEMO_INITIAL;
+    demoOrders = [];
+  }
   document.getElementById('walletAddr').textContent = 'Demo Wallet';
   document.getElementById('demoModeBtn').style.background = '#f59e0b44';
   document.getElementById('demoModeBtn').textContent = '🎮 Demo ON';
@@ -1887,12 +1895,13 @@ function executeDemoTrade() {
       time: new Date().toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'}),
     };
     demoOrders.unshift(order);
+    saveDemoState();
     renderDemoOrders();
     updateDemoBalanceUI();
     updateRiskCalc();
 
-    // 5秒后自动结算
-    setTimeout(() => simulatePnL(order.id), 5000);
+    // 保存到 localStorage
+    saveDemoState();
 
     const lbl = document.getElementById('executeBtnLabel');
     const btn = document.getElementById('executeBtn');
@@ -1908,32 +1917,110 @@ function executeDemoTrade() {
   }
 }
 
-function simulatePnL(orderId) {
+// localStorage 持久化
+function saveDemoState() {
+  try {
+    localStorage.setItem('demoOrders', JSON.stringify(demoOrders));
+    localStorage.setItem('demoBalance', String(demoBalance));
+  } catch(e) {}
+}
+
+function loadDemoState() {
+  try {
+    const orders = localStorage.getItem('demoOrders');
+    const bal = localStorage.getItem('demoBalance');
+    if (orders) demoOrders = JSON.parse(orders);
+    if (bal) { demoBalance = parseFloat(bal); window._walletUSDCBalance = demoBalance; }
+  } catch(e) {}
+}
+
+// 从 Binance 获取实时价格
+const BINANCE_SYMBOL_MAP = {
+  'BTC':'BTCUSDT','ETH':'ETHUSDT','SOL':'SOLUSDT','BNB':'BNBUSDT',
+  'XRP':'XRPUSDT','ADA':'ADAUSDT','DOGE':'DOGEUSDT','AVAX':'AVAXUSDT',
+  'DOT':'DOTUSDT','LINK':'LINKUSDT','MATIC':'MATICUSDT','NEAR':'NEARUSDT',
+};
+
+async function getBinancePrice(token) {
+  const sym = BINANCE_SYMBOL_MAP[token.toUpperCase()] || (token.toUpperCase() + 'USDT');
+  try {
+    const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${sym}`);
+    const d = await r.json();
+    return parseFloat(d.price) || 0;
+  } catch(e) { return 0; }
+}
+
+async function closeDemoOrder(orderId) {
   const order = demoOrders.find(o => o.id === orderId);
   if (!order || order.status !== 'open') return;
-  const currentPrice = parseFloat(document.getElementById('tradePrice')?.dataset?.raw) || parseFloat(document.getElementById('tradePrice')?.textContent?.replace(/[^0-9.]/g,'')) || order.entryPrice;
-  const priceDiff = currentPrice - order.entryPrice;
-  let finalPnL = order.dir === 'long' ? (priceDiff/order.entryPrice)*order.amount : -(priceDiff/order.entryPrice)*order.amount;
-  let closeReason = 'market';
+
+  // 按钮改为 loading 状态
+  const btn = document.querySelector(`.demo-close-btn[data-orderid="${orderId}"]`);
+  if (btn) { btn.textContent = '获取价格...'; btn.disabled = true; }
+
+  // 从 Binance 获取实时价
+  let currentPrice = await getBinancePrice(order.token);
+  if (!currentPrice) {
+    // fallback: DOM 里的当前价
+    currentPrice = parseFloat(document.getElementById('tradePrice')?.dataset?.raw)
+      || order.entryPrice;
+  }
+
+  let finalPnL = order.dir === 'long'
+    ? (currentPrice - order.entryPrice) / order.entryPrice * order.amount
+    : (order.entryPrice - currentPrice) / order.entryPrice * order.amount;
+  let closeReason = '市价平仓';
+
+  // TP/SL 检测
   if (order.tp && ((order.dir==='long'&&currentPrice>=order.tp)||(order.dir==='short'&&currentPrice<=order.tp))) {
+    currentPrice = order.tp;
     finalPnL = Math.abs((order.tp-order.entryPrice)/order.entryPrice)*order.amount;
     closeReason = 'TP ✓';
   } else if (order.sl && ((order.dir==='long'&&currentPrice<=order.sl)||(order.dir==='short'&&currentPrice>=order.sl))) {
+    currentPrice = order.sl;
     finalPnL = -Math.abs((order.sl-order.entryPrice)/order.entryPrice)*order.amount;
     closeReason = 'SL ✗';
   }
+
   order.pnl = finalPnL;
   order.closePrice = currentPrice;
   order.closeReason = closeReason;
   order.status = 'closed';
   demoBalance += order.amount + finalPnL;
   window._walletUSDCBalance = demoBalance;
+  saveDemoState();
   renderDemoOrders();
+  renderDemoPortfolio();
   updateDemoBalanceUI();
 }
 
-function closeDemoOrder(orderId) { simulatePnL(orderId); }
-function clearDemoOrders() { demoOrders = []; renderDemoOrders(); }
+function clearDemoOrders() {
+  demoOrders = [];
+  demoBalance = DEMO_INITIAL;
+  window._walletUSDCBalance = DEMO_INITIAL;
+  saveDemoState();
+  renderDemoOrders();
+  renderDemoPortfolio();
+  updateDemoBalanceUI();
+}
+
+// 启动时检测 TP/SL（用 Binance 实时价，每30秒一次）
+async function checkTPSLTriggers() {
+  const openOrders = demoOrders.filter(o => o.status === 'open');
+  if (!openOrders.length) return;
+  for (const order of openOrders) {
+    const price = await getBinancePrice(order.token);
+    if (!price) continue;
+    const tpHit = order.tp && ((order.dir==='long'&&price>=order.tp)||(order.dir==='short'&&price<=order.tp));
+    const slHit = order.sl && ((order.dir==='long'&&price<=order.sl)||(order.dir==='short'&&price>=order.sl));
+    if (tpHit || slHit) {
+      await closeDemoOrder(order.id);
+      // 通知
+      const tag = tpHit ? '止盈触发 ✓' : '止损触发 ✗';
+      console.log(`[Demo] ${order.token} ${tag} @ $${price}`);
+    }
+  }
+}
 
 function renderDemoOrders() {
   const list = document.getElementById('demoOrdersList');
@@ -2091,7 +2178,7 @@ function renderDemoPortfolio() {
       ${TD(filledValue)}
       <td style="padding:7px 10px;border-bottom:1px solid #0d1520;">${triggerCell}</td>
       ${TD('否', '#475569')}
-      ${TD(upnl, upnlColor)}
+      <td style="padding:7px 10px;border-bottom:1px solid #0d1520;font-size:11px;font-weight:700;color:${upnlColor};" data-upnl="${o.id}">${upnl}</td>
       ${TD(statusLabel, statusColor)}
       <td style="padding:7px 10px;border-bottom:1px solid #0d1520;">${action}</td>
     </tr>`;
@@ -2116,6 +2203,21 @@ function renderDemoPortfolio() {
       hedgeEl.style.display = 'none';
     }
   }
+
+  // 异步更新开仓的实时 uPnL（Binance 价格）
+  openOrders.forEach(async o => {
+    const price = await getBinancePrice(o.token);
+    if (!price) return;
+    const rawPnL = o.dir === 'long'
+      ? (price - o.entryPrice) / o.entryPrice * o.amount
+      : (o.entryPrice - price) / o.entryPrice * o.amount;
+    const pct = (rawPnL / o.amount * 100).toFixed(2);
+    const color = rawPnL >= 0 ? '#10b981' : '#ef4444';
+    const txt = (rawPnL >= 0 ? '+' : '') + '$' + rawPnL.toFixed(2) + ' (' + (rawPnL >= 0 ? '+' : '') + pct + '%)';
+    // 找到对应行的 uPnL 单元格（用 data-upnl 属性定位）
+    const cell = list.querySelector(`[data-upnl="${o.id}"]`);
+    if (cell) { cell.textContent = txt; cell.style.color = color; }
+  });
 }
 
 
